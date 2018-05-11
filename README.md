@@ -30,7 +30,11 @@ var sum = 0
 
 var sumview = view({
   api: {
-    get: function () { return sum }
+    get: function (cb) {
+      this.ready(function () {
+        return sum
+      })
+    }
   },
   map: function (msgs, next) {
     msgs.forEach(function (msg) {
