@@ -32,7 +32,7 @@ var sumview = view({
   api: {
     get: function (cb) {
       this.ready(function () {
-        return sum
+        cb(null, sum)
       })
     }
   },
