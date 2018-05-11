@@ -22,13 +22,12 @@ usable.
 ```js
 var kappa = require('kappa-core')
 var hypercore = require('hypercore')
-var view = require('kappa-core-view')
 
 var core = kappa(hypercore, './log', { valueEncoding: 'json' })
 
 var sum = 0
 
-var sumview = view({
+var sumview = {
   api: {
     get: function (cb) {
       this.ready(function () {
@@ -42,7 +41,7 @@ var sumview = view({
     })
     next()
   }
-})
+}
 
 // the api will be mounted at core.sum
 core.use('sum', sumview)
