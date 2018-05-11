@@ -28,14 +28,20 @@ var core = kappa(hypercore, './log', { valueEncoding: 'json' })
 
 var sum = 0
 
-// the api of flumeview-reduce will be mounted at db.sum...
-core
-  .use('sum', function (msgs, next) {
+var sumview = view({
+  api: {
+    get: function () { return sum }
+  },
+  map: function (msgs, next) {
     msgs.forEach(function (msg) {
       if (typeof msg.value === 'number') sum += msg.value
     })
     next()
-  })
+  }
+})
+
+// the api will be mounted at core.sum
+core.use('sum', sumview)
 
 var feed = core.feed('default')
 
