@@ -43,13 +43,13 @@ var sumview = {
   }
 }
 
-// the api will be mounted at core.sum
+// the api will be mounted at core.api.sum
 core.use('sum', sumview)
 
 var feed = core.feed('default')
 
 feed.append(1, function (err) {
-  core.sum.get(function (err, value) {
+  core.api.sum.get(function (err, value) {
     console.log(value) // 1
   })
 })
@@ -76,6 +76,33 @@ Create a new kappa-core database.
   is used with the string as the filename.
 - Valid `opts` include:
   - `valueEncoding`: a string describing how the data will be encoded.
+
+### var feed = core.feed(name)
+
+Create or get a local writable feed called `name`. If it already existed, it is
+returned. A feed is an instance of
+[hypercore](https://github.com/mafintosh/hypercore).
+
+### core.use(name, view)
+
+Install a view called `name` to the kappa-core instance. A view is an object of
+the form
+
+```js
+{
+  api: {
+    someSyncFunction: function () { return ... },
+    someAsyncFunction: function (cb) { process.nextTick(cb, ...) }
+  },
+
+  map: function (msgs, next) {
+    msgs.forEach(function (msg) {
+      // ...
+    })
+    next()
+  }
+}
+```
 
 ## Install
 
