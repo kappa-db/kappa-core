@@ -21,9 +21,8 @@ usable.
 
 ```js
 var kappa = require('kappa-core')
-var hypercore = require('hypercore')
 
-var core = kappa(hypercore, './log', { valueEncoding: 'json' })
+var core = kappa('./log', { valueEncoding: 'json' })
 
 var sum = 0
 
@@ -46,11 +45,11 @@ var sumview = {
 // the api will be mounted at core.api.sum
 core.use('sum', sumview)
 
-var feed = core.feed('default')
-
-feed.append(1, function (err) {
-  core.api.sum.get(function (err, value) {
-    console.log(value) // 1
+core.feed('default', function (err, feed) {
+  feed.append(1, function (err) {
+    core.api.sum.get(function (err, value) {
+      console.log(value) // 1
+    })
   })
 })
 ```
@@ -61,14 +60,10 @@ feed.append(1, function (err) {
 var kappa = require('kappa-core')
 ```
 
-### var core = kappa(hypercore, storage, opts)
+### var core = kappa(storage, opts)
 
 Create a new kappa-core database.
 
-- `hypercore` is the value of `require('hypercore')` of the version of hypercore
-  you'd like to use. It's passed in in this fashion so that kappa-core doesn't
-  bind itself to a specific (and potentially broken or out of date) version of
-  hypercore that you cannot change.
 - `storage` is an instance of
   [random-access-storage](https://github.com/random-access-storage). If a string
   is given,
