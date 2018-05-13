@@ -72,7 +72,7 @@ Create a new kappa-core database.
 - Valid `opts` include:
   - `valueEncoding`: a string describing how the data will be encoded.
 
-### var feed = core.feed(name)
+### var feed = core.feed(name, cb)
 
 Create or get a local writable feed called `name`. If it already existed, it is
 returned. A feed is an instance of
