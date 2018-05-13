@@ -1,0 +1,27 @@
+{
+  "name": "kappa-core",
+  "description": "a small core for append-only log based programs",
+  "author": "Stephen Whitmore <sww@eight.net>",
+  "version": "1.0.0",
+  "repository": {
+    "url": "git://github.com/noffle/kappa-core.git"
+  },
+  "homepage": "https://github.com/noffle/kappa-core",
+  "bugs": "https://github.com/noffle/kappa-core/issues",
+  "main": "index.js",
+  "scripts": {
+    "test": "tape test/*.js",
+    "lint": "standard"
+  },
+  "keywords": [],
+  "dependencies": {
+    "hypercore": "^6.14.0",
+    "multifeed": "^1.3.0",
+    "multifeed-index": "^3.0.0"
+  },
+  "devDependencies": {
+    "tape": "~4.6.2",
+    "standard": "~10.0.0"
+  },
+  "license": "ISC"
+}
