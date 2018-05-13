@@ -94,6 +94,11 @@ the form
 }
 ```
 
+### core.replicate([opts])
+
+Create a duplex replication stream. `opts` are passed in to
+[multifeed](https://github.com/noffle/multifeed)'s API of the same name.
+
 ## Install
 
 With [npm](https://npmjs.org/) installed, run

@@ -29,3 +29,7 @@ Kappa.prototype.use = function (name, view) {
 Kappa.prototype.feed = function (name, cb) {
   this._logs.writer(name, cb)
 }
+
+Kappa.prototype.replicate = function (opts) {
+  return this._logs.createReplicationStream(opts)
+}
