@@ -2,20 +2,15 @@
 
 > a small core for append-only log based programs
 
-[kappa architecture](http://kappa-architecture.com)
-
-a lot like [flumedb][flumedb], but using
+A lot like [flumedb][flumedb], but using
 [multifeed](https://github.com/noffle/multifeed) as an append-only log base,
-which is actually a *set* of append-only logs
+which is actually a *set* of append-only logs.
 
-pronounced *"capricorn"*
+Pronounced *"capricorn"*.
 
 ## Status
 
-*Experimental*
-
-Mostly not even built! Right now this is more of a module sketch than anything
-usable.
+*Experimental*, but functional.
 
 ## Usage
 
@@ -145,6 +140,10 @@ kappa-core is built atop ideas from a huge body of others' brilliant work:
 - [hyperdb](https://github.com/mafintosh/hyperdb)
 - [forkdb](https://github.com/substack/forkdb)
 - [hyperlog](https://github.com/mafintosh/hyperlog)
+
+## Further Reading
+
+- [kappa architecture](http://kappa-architecture.com)
 
 ## License
 
