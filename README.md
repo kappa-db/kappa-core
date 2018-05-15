@@ -90,12 +90,21 @@ the form
       // ...
     })
     next()
-  }
+  },
+
+  fetchState: function (cb) { ... },
+  storeState: function (state, cb) { ... }
 }
 ```
 
 The kappa-core instance `core` is always passed in as the first parameter. The
 underlying `multifeed-index` is bound to `this`.
+
+The `{fetch,store}State` functions are optional: they tell the view where to
+store its state information about what log entries have been indexed thus far.
+If not passed in, they will be stored in memory (i.e. reprocessed on each fresh
+run of the program). You can use any backend you want (like leveldb) to store
+the `Buffer` object `state`.
 
 ### core.replicate([opts])
 
