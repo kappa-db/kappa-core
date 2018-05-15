@@ -31,5 +31,5 @@ Kappa.prototype.feed = function (name, cb) {
 }
 
 Kappa.prototype.replicate = function (opts) {
-  return this._logs.createReplicationStream(opts)
+  return this._logs.replicate(opts)
 }
