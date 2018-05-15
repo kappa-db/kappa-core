@@ -18,7 +18,9 @@ Kappa.prototype.use = function (name, view) {
   var idx = indexer({
     log: this._logs,
     maxBatch: 10,
-    batch: view.map
+    batch: view.map,
+    fetchState: view.fetchState,
+    storeState: view.storeState
   })
   this._indexes[name] = idx
   this.api[name] = {}
