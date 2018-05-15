@@ -23,7 +23,7 @@ var sum = 0
 
 var sumview = {
   api: {
-    get: function (cb) {
+    get: function (core, cb) {
       this.ready(function () {
         cb(null, sum)
       })
@@ -81,8 +81,8 @@ the form
 ```js
 {
   api: {
-    someSyncFunction: function () { return ... },
-    someAsyncFunction: function (cb) { process.nextTick(cb, ...) }
+    someSyncFunction: function (core) { return ... },
+    someAsyncFunction: function (core, cb) { process.nextTick(cb, ...) }
   },
 
   map: function (msgs, next) {
@@ -93,6 +93,9 @@ the form
   }
 }
 ```
+
+The kappa-core instance `core` is always passed in as the first parameter. The
+underlying `multifeed-index` is bound to `this`.
 
 ### core.replicate([opts])
 

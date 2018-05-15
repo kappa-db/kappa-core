@@ -7,7 +7,7 @@ var sum = 0
 
 var sumview = {
   api: {
-    get: function (cb) {
+    get: function (core, cb) {
       this.ready(function () {
         cb(null, sum)
       })

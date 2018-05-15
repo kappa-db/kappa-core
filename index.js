@@ -22,7 +22,7 @@ Kappa.prototype.use = function (name, view) {
   })
   this.api[name] = {}
   for (var key in view.api) {
-    this.api[name][key] = view.api[key].bind(this._indexes[name])
+    this.api[name][key] = view.api[key].bind(this._indexes[name], this)
   }
 }
 
