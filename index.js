@@ -26,7 +26,21 @@ Kappa.prototype.use = function (name, view) {
   this.api[name] = {}
   this.api[name].ready = idx.ready.bind(idx)
   for (var key in view.api) {
-    this.api[name][key] = view.api[key].bind(this._indexes[name], this)
+    this.api[name][key] = view.api[key].bind(this)
+  }
+}
+
+Kappa.prototype.ready = function (viewNames, cb) {
+  if (typeof viewNames === 'string') viewNames = [viewNames]
+  if (viewNames.length === 0) return process.nextTick(cb)
+
+  var pending = viewNames.length
+  for (var i=0; i < viewNames.length; i++) {
+    this._indexes[viewNames[i]].ready(done)
+  }
+
+  function done () {
+    if (!--pending) cb()
   }
 }
 
