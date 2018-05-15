@@ -15,12 +15,14 @@ function Kappa (storage, opts) {
 
 // TODO: support versions + checking to rebuild them
 Kappa.prototype.use = function (name, view) {
-  this._indexes[name] = indexer({
+  var idx = indexer({
     log: this._logs,
     maxBatch: 10,
     batch: view.map
   })
+  this._indexes[name] = idx
   this.api[name] = {}
+  this.api[name].ready = idx.ready.bind(idx)
   for (var key in view.api) {
     this.api[name][key] = view.api[key].bind(this._indexes[name], this)
   }
