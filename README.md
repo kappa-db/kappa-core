@@ -16,8 +16,10 @@ Pronounced *"capricorn"*.
 
 ```js
 var kappa = require('kappa-core')
+var memdb = require('memdb')
 
 var core = kappa('./log', { valueEncoding: 'json' })
+var idx = memdb()
 
 var sum = 0
 
@@ -34,7 +36,12 @@ var sumview = {
       if (typeof msg.value === 'number') sum += msg.value
     })
     next()
-  }
+  },
+
+  // where to store and fetch the indexer's state (which log entries have been
+  // processed so far)
+  storeState: function (state, cb) { idx.put('state', state, cb) },
+  fetchState: function (cb) { idx.get('state', cb) }
 }
 
 // the api will be mounted at core.api.sum
