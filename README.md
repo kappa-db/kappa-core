@@ -125,6 +125,8 @@ core.ready('sum', function () { ... })
 core.ready(['kv', 'refs', 'spatial'], function () { ... })
 ```
 
+If viewNames is `[]` or not included, all views will be waited on.
+
 ### core.replicate([opts])
 
 Create a duplex replication stream. `opts` are passed in to

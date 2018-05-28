@@ -31,8 +31,15 @@ Kappa.prototype.use = function (name, view) {
 }
 
 Kappa.prototype.ready = function (viewNames, cb) {
+  if (typeof viewNames === 'function') {
+    cb = viewNames
+    viewNames = []
+  }
+
   if (typeof viewNames === 'string') viewNames = [viewNames]
-  if (viewNames.length === 0) return process.nextTick(cb)
+  if (viewNames.length === 0) {
+    viewNames = Object.keys(this._indexes)
+  }
 
   var pending = viewNames.length
   for (var i=0; i < viewNames.length; i++) {
