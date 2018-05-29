@@ -16,8 +16,8 @@
   "keywords": [],
   "dependencies": {
     "hypercore": "^6.14.0",
-    "multifeed": "^1.3.0",
-    "multifeed-index": "^3.0.0"
+    "multifeed": "^1.3.2",
+    "multifeed-index": "^3.0.1"
   },
   "devDependencies": {
     "tape": "~4.6.2",

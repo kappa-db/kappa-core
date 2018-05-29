@@ -41,11 +41,13 @@ Kappa.prototype.ready = function (viewNames, cb) {
     viewNames = Object.keys(this._indexes)
   }
 
-  var pending = viewNames.length + 1
-  for (var i=0; i < viewNames.length; i++) {
-    this._indexes[viewNames[i]].ready(done)
-  }
-  this._logs.ready(done)
+  var pending = viewNames.length
+  var self = this
+  this._logs.ready(function () {
+    for (var i=0; i < viewNames.length; i++) {
+      self._indexes[viewNames[i]].ready(done)
+    }
+  })
 
   function done () {
     if (!--pending) cb()
