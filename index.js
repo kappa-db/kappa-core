@@ -22,6 +22,7 @@ Kappa.prototype.use = function (name, view) {
     fetchState: view.fetchState,
     storeState: view.storeState
   })
+  if (view.indexed) idx.on('indexed', view.indexed)
   this._indexes[name] = idx
   this.api[name] = {}
   this.api[name].ready = idx.ready.bind(idx)

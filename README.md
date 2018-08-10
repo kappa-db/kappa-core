@@ -113,6 +113,11 @@ If not passed in, they will be stored in memory (i.e. reprocessed on each fresh
 run of the program). You can use any backend you want (like leveldb) to store
 the `Buffer` object `state`.
 
+There are also the following optional `opts`:
+
+- `inedxed`: a function to run whenever a new batch of messages have been
+  indexed & written to storage. Receives an array of messages.
+
 ### core.ready(viewNames, cb)
 
 Wait until all views named by `viewNames` are caught up. e.g.
