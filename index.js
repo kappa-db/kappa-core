@@ -27,7 +27,8 @@ Kappa.prototype.use = function (name, view) {
   this.api[name] = {}
   this.api[name].ready = idx.ready.bind(idx)
   for (var key in view.api) {
-    this.api[name][key] = view.api[key].bind(idx, this)
+    if (typeof view.api[key] === 'function') this.api[name][key] = view.api[key].bind(idx, this)
+    else this.api[name][key] = view.api[key]
   }
 }
 
