@@ -145,6 +145,14 @@ With [npm](https://npmjs.org/) installed, run
 $ npm install kappa-core
 ```
 
+## Useful view modules
+
+Here are some useful modules that play well with kappa-core for building views:
+
+- [unordered-materialized-bkd](https://github.com/digidem/unordered-materialized-bkd): spatial index
+- [unordered-materialized-kv](https://github.com/digidem/unordered-materialized-kv): key/value store
+- [unordered-materialized-backrefs](https://github.com/digidem/unordered-materialized-backrefs): back-references
+
 ## Why?
 
 [flumedb][flumedb] presents an ideal small core API for an append-only log:
@@ -175,11 +183,11 @@ breaking anything.
 
 ## Acknowledgments
 
-kappa-core is built atop ideas from a huge body of others' brilliant work:
+kappa-core is built atop ideas from a huge body of others' work:
 
 - [flumedb][flumedb]
 - [secure scuttlebutt](http://scuttlebutt.nz)
-- [hypercore](https://github.com/mafintosh/hypercore)
+- [hypercore][hypercore]
 - [hyperdb](https://github.com/mafintosh/hyperdb)
 - [forkdb](https://github.com/substack/forkdb)
 - [hyperlog](https://github.com/mafintosh/hyperlog)
@@ -192,5 +200,6 @@ kappa-core is built atop ideas from a huge body of others' brilliant work:
 
 ISC
 
+[hypercore]: https://github.com/mafintosh/hypercore
 [flumedb]: https://github.com/flumedb/flumedb
 [git-shallow]: https://www.git-scm.com/docs/gitconsole.log(one#gitconsole.log(one---depthltdepthgt)
