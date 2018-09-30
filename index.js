@@ -17,7 +17,7 @@ function Kappa (storage, opts) {
 Kappa.prototype.use = function (name, view) {
   var idx = indexer({
     log: this._logs,
-    maxBatch: 10,
+    maxBatch: view.maxBatch || 10,
     batch: view.map,
     fetchState: view.fetchState,
     storeState: view.storeState
