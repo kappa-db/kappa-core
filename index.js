@@ -32,6 +32,10 @@ Kappa.prototype.use = function (name, view) {
   }
 }
 
+Kappa.prototype.feeds = function () {
+  return this._logs.feeds()
+}
+
 Kappa.prototype.ready = function (viewNames, cb) {
   if (typeof viewNames === 'function') {
     cb = viewNames

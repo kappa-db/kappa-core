@@ -80,6 +80,13 @@ Create or get a local writable feed called `name`. If it already existed, it is
 returned. A feed is an instance of
 [hypercore](https://github.com/mafintosh/hypercore).
 
+### var feeds = core.feeds()
+
+An array of all hypercores in the kappa-core. Check a feed's `key` to
+find the one you want, or check its `writable` / `readable` properties.
+
+Only populated once `core.ready(fn)` is fired.
+
 ### core.use(name, view)
 
 Install a view called `name` to the kappa-core instance. A view is an object of
