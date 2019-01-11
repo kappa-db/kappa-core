@@ -6,8 +6,9 @@ module.exports = Kappa
 
 function Kappa (storage, opts) {
   if (!(this instanceof Kappa)) return new Kappa(storage, opts)
+  if (!opts) opts = {}
 
-  this._logs = multifeed(hypercore, storage, opts)
+  this._logs = opts.multifeed || multifeed(hypercore, storage, opts)
   this._indexes = {}
 
   this.api = {}

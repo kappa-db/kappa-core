@@ -73,6 +73,7 @@ Create a new kappa-core database.
   is used with the string as the filename.
 - Valid `opts` include:
   - `valueEncoding`: a string describing how the data will be encoded.
+  - `multifeed`: A preconfigured instance of [noffle/multifeed](https://github.com/noffle/multifeed)
 
 ### var feed = core.feed(name, cb)
 
