@@ -1,3 +1,5 @@
+var inherits = require('inherits')
+var EventEmitter = require('events').EventEmitter
 var hypercore = require('hypercore')
 var multifeed = require('multifeed')
 var indexer = require('multifeed-index')
@@ -13,6 +15,8 @@ function Kappa (storage, opts) {
 
   this.api = {}
 }
+
+inherits(Kappa, EventEmitter)
 
 Kappa.prototype.use = function (name, version, view) {
   var self = this

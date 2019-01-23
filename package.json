@@ -16,6 +16,7 @@
   "keywords": [],
   "dependencies": {
     "hypercore": "^6.18.1",
+    "inherits": "^2.0.3",
     "multifeed": "^2.0.0",
     "multifeed-index": "^3.0.1"
   },
