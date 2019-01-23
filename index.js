@@ -15,6 +15,7 @@ function Kappa (storage, opts) {
 }
 
 Kappa.prototype.use = function (name, version, view) {
+  var self = this
   if (typeof version !== 'number') {
     view = version
     version = undefined
@@ -26,6 +27,9 @@ Kappa.prototype.use = function (name, version, view) {
     batch: view.map,
     fetchState: view.fetchState,
     storeState: view.storeState
+  })
+  idx.on('error', function (err) {
+    self.emit('error', err)
   })
   if (view.indexed) idx.on('indexed', view.indexed)
   this._indexes[name] = idx
@@ -55,7 +59,7 @@ Kappa.prototype.ready = function (viewNames, cb) {
   var pending = viewNames.length
   var self = this
   this._logs.ready(function () {
-    for (var i=0; i < viewNames.length; i++) {
+    for (var i = 0; i < viewNames.length; i++) {
       self._indexes[viewNames[i]].ready(done)
     }
   })

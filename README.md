@@ -151,6 +151,12 @@ If viewNames is `[]` or not included, all views will be waited on.
 Create a duplex replication stream. `opts` are passed in to
 [multifeed](https://github.com/noffle/multifeed)'s API of the same name.
 
+### core.on('error', function (err) {})
+
+Event emitted when an error within kappa-core has occurred. This is very
+important to listen on, lest things suddenly seem to break and it's not
+immediately clear why.
+
 ## Install
 
 With [npm](https://npmjs.org/) installed, run
