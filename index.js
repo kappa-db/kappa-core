@@ -14,10 +14,14 @@ function Kappa (storage, opts) {
   this.api = {}
 }
 
-// TODO: support versions + checking to rebuild them
-Kappa.prototype.use = function (name, view) {
+Kappa.prototype.use = function (name, version, view) {
+  if (typeof version !== 'number') {
+    view = version
+    version = undefined
+  }
   var idx = indexer({
     log: this._logs,
+    version: version,
     maxBatch: view.maxBatch || 10,
     batch: view.map,
     fetchState: view.fetchState,
