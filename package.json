@@ -2,7 +2,7 @@
   "name": "kappa-core",
   "description": "a small core for append-only log based programs",
   "author": "Stephen Whitmore <sww@eight.net>",
-  "version": "2.6.2",
+  "version": "2.6.3",
   "repository": {
     "url": "git://github.com/noffle/kappa-core.git"
   },
