@@ -80,6 +80,7 @@ Kappa.prototype.pause = function (viewNames, cb) {
   }
   cb = cb || noop
 
+  if (!viewNames) viewNames = []
   if (typeof viewNames === 'string') viewNames = [viewNames]
   if (viewNames.length === 0) {
     viewNames = Object.keys(this._indexes)
