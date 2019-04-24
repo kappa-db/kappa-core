@@ -146,6 +146,17 @@ core.ready(['kv', 'refs', 'spatial'], function () { ... })
 
 If viewNames is `[]` or not included, all views will be waited on.
 
+### core.pause([viewNames], [cb])
+
+Pause some or all of the views' indexing process. If no `viewNames` are given,
+they will all be paused. `cb` is called once the views finish up any entries
+they're in the middle of processing and are fully stopped.
+
+### core.resume([viewNames])
+
+Resume some or all paused views. If no `viewNames` is given, all views are
+resumed.
+
 ### core.replicate([opts])
 
 Create a duplex replication stream. `opts` are passed in to

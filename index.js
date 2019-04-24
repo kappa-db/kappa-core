@@ -73,6 +73,46 @@ Kappa.prototype.ready = function (viewNames, cb) {
   }
 }
 
+Kappa.prototype.pause = function (viewNames, cb) {
+  if (typeof viewNames === 'function') {
+    cb = viewNames
+    viewNames = []
+  }
+  cb = cb || noop
+
+  if (typeof viewNames === 'string') viewNames = [viewNames]
+  if (viewNames.length === 0) {
+    viewNames = Object.keys(this._indexes)
+  }
+
+  var pending = viewNames.length
+  var self = this
+  this._logs.ready(function () {
+    for (var i = 0; i < viewNames.length; i++) {
+      self._indexes[viewNames[i]].pause(done)
+    }
+  })
+
+  function done () {
+    if (!--pending) cb()
+  }
+}
+
+Kappa.prototype.resume = function (viewNames) {
+  if (!viewNames) viewNames = []
+  if (typeof viewNames === 'string') viewNames = [viewNames]
+  if (viewNames.length === 0) {
+    viewNames = Object.keys(this._indexes)
+  }
+
+  var self = this
+  this._logs.ready(function () {
+    for (var i = 0; i < viewNames.length; i++) {
+      self._indexes[viewNames[i]].resume()
+    }
+  })
+}
+
 Kappa.prototype.feed = function (name, cb) {
   this._logs.writer(name, cb)
 }
@@ -80,3 +120,5 @@ Kappa.prototype.feed = function (name, cb) {
 Kappa.prototype.replicate = function (opts) {
   return this._logs.replicate(opts)
 }
+
+function noop () {}
