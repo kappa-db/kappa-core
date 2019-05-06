@@ -115,7 +115,9 @@ Kappa.prototype.resume = function (viewNames) {
 }
 
 Kappa.prototype.feed = function (name, cb) {
-  this._logs.writer(name, cb)
+  var feed = this._logs.feed(name)
+  if (feed) return cb(null, feed)
+  else this._logs.writer(name, cb)
 }
 
 Kappa.prototype.replicate = function (opts) {
