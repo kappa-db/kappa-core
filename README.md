@@ -75,11 +75,15 @@ Create a new kappa-core database.
   - `valueEncoding`: a string describing how the data will be encoded.
   - `multifeed`: A preconfigured instance of [noffle/multifeed](https://github.com/noffle/multifeed)
 
-### var feed = core.feed(name, cb)
+### core.writer(name, cb)
 
-Create or get a local writable feed called `name`. If it already existed, it is
-returned. A feed is an instance of
+Get a local writable feed called `name`. If it already exists, it is returned,
+otherwise **it is created**. A feed is an instance of
 [hypercore](https://github.com/mafintosh/hypercore).
+
+### var feed = multi.feed(key)
+
+Fetch a feed by **its key** `key` (a `Buffer` or hex string).
 
 ### var feeds = core.feeds()
 
