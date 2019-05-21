@@ -15,15 +15,15 @@
   },
   "keywords": [],
   "dependencies": {
-    "hypercore": "^6.25.2",
+    "hypercore": "^7.2.0",
     "inherits": "^2.0.3",
-    "multifeed": "^3.0.3",
+    "multifeed": "^3.0.6",
     "multifeed-index": "^3.2.2"
   },
   "devDependencies": {
     "random-access-memory": "^3.1.1",
     "standard": "~12.0.1",
-    "tape": "~4.6.2"
+    "tape": "^4.10.1"
   },
   "license": "ISC"
 }
