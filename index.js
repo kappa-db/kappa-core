@@ -24,14 +24,12 @@ Kappa.prototype.use = function (name, version, view) {
     view = version
     version = undefined
   }
-  var idx = indexer({
+  var idx = indexer(Object.assign({}, view, {
     log: this._logs,
     version: version,
     maxBatch: view.maxBatch || 10,
-    batch: view.map,
-    fetchState: view.fetchState,
-    storeState: view.storeState
-  })
+    batch: view.map
+  }))
   idx.on('error', function (err) {
     self.emit('error', err)
   })
