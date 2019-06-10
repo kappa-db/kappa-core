@@ -98,24 +98,31 @@ Install a view called `name` to the kappa-core instance. A view is an object of
 the form
 
 ```js
+// all are optional except map
 {
-  // required functions
+  // your useful functions for users of this view to call
   api: {
     someSyncFunction: function (core) { return ... },
     someAsyncFunction: function (core, cb) { process.nextTick(cb, ...) }
   },
 
+  // process each batch of messages
   map: function (msgs, next) {
     msgs.forEach(function (msg) {
       // ...
     })
     next()
   },
-  
-  // optional functions
+
+  // save progress state so processing can resume
   fetchState: function (cb) { ... },
   storeState: function (state, cb) { ... },
+
+  // runs after each batch of messages is done processing and progress is persisted
   indexed: function (msgs) { ... },
+  
+  // number of messages to process in a batch.  Defaults to 10 if omitted
+  maxBatch: 10,
 }
 ```
 
