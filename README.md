@@ -47,7 +47,7 @@ var sumview = {
 // the api will be mounted at core.api.sum
 core.use('sum', 1, sumview)  // name the view 'sum' and consider the 'sumview' logic as version 1
 
-core.feed('default', function (err, feed) {
+core.writer('default', function (err, feed) {
   feed.append(1, function (err) {
     core.api.sum.get(function (err, value) {
       console.log(value) // 1
