@@ -1,6 +1,6 @@
 {
   "name": "kappa-core",
-  "description": "a small core for append-only log based programs",
+  "description": "Minimal peer-to-peer database, based on kappa architecture.",
   "author": "Stephen Whitmore <sww@eight.net>",
   "version": "3.0.1",
   "repository": {

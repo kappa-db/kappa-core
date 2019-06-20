@@ -1,10 +1,6 @@
 # kappa-core
 
-> Minimal database for peer-to-peer programs, based on append-only logs.
-
-
-
-
+> Minimal peer-to-peer database, based on kappa architecture.
 
 ## Example
 
