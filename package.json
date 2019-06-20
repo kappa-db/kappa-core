@@ -2,7 +2,7 @@
   "name": "kappa-core",
   "description": "Minimal peer-to-peer database, based on kappa architecture.",
   "author": "Stephen Whitmore <sww@eight.net>",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "repository": {
     "url": "git://github.com/noffle/kappa-core.git"
   },
