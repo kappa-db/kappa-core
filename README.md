@@ -5,7 +5,7 @@
 ## Introduction
 
 kappa-core is built on an abstraction called a [kappa architecture](kappa), or
-"even sourcing". This differs from the traditional approach to databases, which
+"event sourcing". This differs from the traditional approach to databases, which
 is centered on storing the latest value for each key in the database. You might
 have a *table* like this:
 
