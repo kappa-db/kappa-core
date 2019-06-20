@@ -1,54 +1,59 @@
 # kappa-core
 
-> a small core for append-only log based programs
+> Minimal database for peer-to-peer programs, based on append-only logs.
 
-A lot like [flumedb][flumedb], but using
-[multifeed](https://github.com/noffle/multifeed) as an append-only log base,
-which is actually a *set* of append-only logs.
 
-Pronounced *"capricorn"*.
 
-## Status
 
-*Experimental*, but functional.
 
-## Usage
+## Example
+
+This example sets up an on-disk log store and an in-memory view store. The view
+tallies the sum of all of the numbers in the logs, and provides an API for
+getting that sum.
 
 ```js
 var kappa = require('kappa-core')
+var view = require('kappa-view')
 var memdb = require('memdb')
 
+// Store logs in a directory called "log". Store views in memory.
 var core = kappa('./log', { valueEncoding: 'json' })
-var idx = memdb()
+var store = memdb()
 
-var sum = 0
+// View definition
+var sumview = view(store, function (db) {
 
-var sumview = {
+  // Called with a batch of log entries to be processed by the view.
+  // No further entries are processed by this view until 'next()' is called.
+  map: function (entries, next) {
+    db.get('sum', function (err, value) {
+      var sum
+      if (err && err.notFound) sum = 0
+      else if (err) return next(err)
+      else sum = value
+    })
+    entries.forEach(function (entry) {
+      if (typeof entry.value === 'number') sum += entry.value
+    })
+    db.put('sum', sum, next)
+  }
+
+  // Whatever is defined in the "api" object is publicly accessible
   api: {
     get: function (core, cb) {
-      this.ready(function () {
+      this.ready(function () {  // wait for all views to catch up
         cb(null, sum)
       })
     }
   },
-  map: function (msgs, next) {
-    msgs.forEach(function (msg) {
-      if (typeof msg.value === 'number') sum += msg.value
-    })
-    next()
-  },
-
-  // where to store and fetch the indexer's state (which log entries have been
-  // processed so far)
-  storeState: function (state, cb) { idx.put('state', state, cb) },
-  fetchState: function (cb) { idx.get('state', cb) }
-}
+})
 
 // the api will be mounted at core.api.sum
 core.use('sum', 1, sumview)  // name the view 'sum' and consider the 'sumview' logic as version 1
 
-core.writer('default', function (err, feed) {
-  feed.append(1, function (err) {
+core.writer('default', function (err, writer) {
+  writer.append(1, function (err) {
     core.api.sum.get(function (err, value) {
       console.log(value) // 1
     })
@@ -73,22 +78,22 @@ Create a new kappa-core database.
   is used with the string as the filename.
 - Valid `opts` include:
   - `valueEncoding`: a string describing how the data will be encoded.
-  - `multifeed`: A preconfigured instance of [noffle/multifeed](https://github.com/noffle/multifeed)
+  - `multifeed`: A preconfigured instance of [multifeed](https://github.com/kappa-db/multifeed)
 
 ### core.writer(name, cb)
 
-Get a local writable feed called `name`. If it already exists, it is returned,
-otherwise **it is created**. A feed is an instance of
+Get or create a local writable log called `name`. If it already exists, it is
+returned, otherwise it is created. A writer is an instance of
 [hypercore](https://github.com/mafintosh/hypercore).
 
 ### var feed = multi.feed(key)
 
-Fetch a feed by **its key** `key` (a `Buffer` or hex string).
+Fetch a log / feed by its **public key** (a `Buffer` or hex string).
 
 ### var feeds = core.feeds()
 
-An array of all hypercores in the kappa-core. Check a feed's `key` to
-find the one you want, or check its `writable` / `readable` properties.
+An array of all hypercores in the kappa-core. Check a feed's `key` to find the
+one you want, or check its `writable` / `readable` properties.
 
 Only populated once `core.ready(fn)` is fired.
 
@@ -98,51 +103,56 @@ Install a view called `name` to the kappa-core instance. A view is an object of
 the form
 
 ```js
-// all are optional except map
+// All are optional except "map"
 {
-  // your useful functions for users of this view to call
-  api: {
-    someSyncFunction: function (core) { return ... },
-    someAsyncFunction: function (core, cb) { process.nextTick(cb, ...) }
-  },
 
-  // process each batch of messages
-  map: function (msgs, next) {
-    msgs.forEach(function (msg) {
+  // Process each batch of entries
+  map: function (entries, next) {
+    entries.forEach(function (entry) {
       // ...
     })
     next()
   },
 
-  // save progress state so processing can resume
+  // Your useful functions for users of this view to call
+  api: {
+    someSyncFunction: function (core) { return ... },
+    someAsyncFunction: function (core, cb) { process.nextTick(cb, ...) }
+  },
+
+  // Save progress state so processing can resume on later runs of the program.
+  // Not required if you're using the "kappa-view" module, which handles this for you.
   fetchState: function (cb) { ... },
   storeState: function (state, cb) { ... },
+  clearState: function (cb) { ... }
 
-  // runs after each batch of messages is done processing and progress is persisted
-  indexed: function (msgs) { ... },
+  // Runs after each batch of entries is done processing and progress is persisted
+  indexed: function (entries) { ... },
   
-  // number of messages to process in a batch.  Defaults to 10 if omitted
-  maxBatch: 10,
+  // Number of entries to process in a batch
+  maxBatch: 100,
 }
 ```
 
-The kappa-core instance `core` is always is bound to `this` in all of the `api`
-functions you define.
+**NOTE**: The kappa-core instance `core` is always passed as the fist parameter
+in all of the `api` functions you define.
 
 `version` is an integer that represents what version you want to consider the
 view logic as. Whenever you change it (generally by incrementing it by 1), the
 underlying data generated by the view will be wiped, and the view will be
 regenerated again from scratch. This provides a means to change the logic or
-data structures of a view over time in a way that is future-compatible.
+data structure of a view over time in a way that is future-compatible.
 
-The `fetchState` and `storeState` functions are optional: they tell the view where to
-store its state information about what log entries have been indexed thus far.
-If not passed in, they will be stored in memory (i.e. reprocessed on each fresh
-run of the program). You can use any backend you want (like leveldb) to store
-the `Buffer` object `state`.
+The `fetchState`, `storeState`, and `clearState` functions are optional: they
+tell the view where to store its state information about what log entries have
+been indexed thus far. If not passed in, they will be stored in memory (i.e.
+reprocessed on each fresh run of the program). You can use any backend you want
+(like leveldb) to store the `Buffer` object `state`. If you use a module like
+[kappa-view](https://github.com/kappa-db/kappa-view), it will handle state
+management on your behalf.
 
-`indexed` is an optional function to run whenever a new batch of messages have
-been indexed and written to storage. Receives an array of messages.
+`indexed` is an optional function to run whenever a new batch of entries have
+been indexed and written to storage. Receives an array of entries.
 
 ### core.ready(viewNames, cb)
 
@@ -172,7 +182,7 @@ resumed.
 ### core.replicate([opts])
 
 Create a duplex replication stream. `opts` are passed in to
-[multifeed](https://github.com/noffle/multifeed)'s API of the same name.
+[multifeed](https://github.com/kappa-db/multifeed)'s API of the same name.
 
 ### core.on('error', function (err) {})
 
@@ -188,9 +198,10 @@ With [npm](https://npmjs.org/) installed, run
 $ npm install kappa-core
 ```
 
-## Useful view modules
+## Useful helper modules
 
-Here are some useful modules that play well with kappa-core for building views:
+Here are some useful modules that play well with kappa-core for building
+materialized views:
 
 - [unordered-materialized-bkd](https://github.com/digidem/unordered-materialized-bkd): spatial index
 - [unordered-materialized-kv](https://github.com/digidem/unordered-materialized-kv): key/value store
@@ -198,25 +209,23 @@ Here are some useful modules that play well with kappa-core for building views:
 
 ## Why?
 
-[flumedb][flumedb] presents an ideal small core API for an append-only log:
-append new data, and build (versioned) views over it. kappa-core copies this
-gleefully, but with two major differences:
+kappa-core is built atop two major building blocks:
 
-1. [hypercore][hypercore] is used for feed (append-only log) storage
-2. views are built in out-of-order sequence
+1. [hypercore][hypercore], which is used for (append-only) log storage
+2. materialized views, which are built by traversing logs in potentially out-of-order sequence
 
 hypercore provides some very useful superpowers:
 
 1. all data is cryptographically associated with a writer's public key
-2. partial replication: parts of feeds can be selectively sync'd between peers,
+2. partial replication: parts of logs can be selectively sync'd between peers,
 instead of all-or-nothing, without loss of cryptographic integrity
 
 Building views in arbitrary sequence is more challenging than when order is
-known to be topographic, but confers some benefits:
+known to be topographic or sorted in some way, but confers some benefits:
 
 1. most programs are only interested in the latest values of data; the long tail
 of history can be traversed asynchronously at leisure after the tips of the
-feeds are processed
+logs are processed
 2. the views are tolerant of partially available data. Many of the modules
 listed in the section below depend on *topographic completeness*: all entries
 referenced by an entry **must** be present for indexes to function. This makes
@@ -234,7 +243,7 @@ kappa-core is built atop ideas from a huge body of others' work:
 - [hyperdb](https://github.com/mafintosh/hyperdb)
 - [forkdb](https://github.com/substack/forkdb)
 - [hyperlog](https://github.com/mafintosh/hyperlog)
-- a harmonious meshing of ideas with @substack in spain
+- a harmonious meshing of ideas with @substack in the south of spain
 
 ## Further Reading
 
