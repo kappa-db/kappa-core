@@ -58,12 +58,13 @@ Kappa.prototype.ready = function (viewNames, cb) {
     viewNames = Object.keys(this._indexes)
   }
 
-  var pending = viewNames.length
+  var pending = viewNames.length + 1
   var self = this
   this._logs.ready(function () {
     for (var i = 0; i < viewNames.length; i++) {
       self._indexes[viewNames[i]].ready(done)
     }
+    done()
   })
 
   function done () {
@@ -84,12 +85,13 @@ Kappa.prototype.pause = function (viewNames, cb) {
     viewNames = Object.keys(this._indexes)
   }
 
-  var pending = viewNames.length
+  var pending = viewNames.length + 1
   var self = this
   this._logs.ready(function () {
     for (var i = 0; i < viewNames.length; i++) {
       self._indexes[viewNames[i]].pause(done)
     }
+    done()
   })
 
   function done () {
