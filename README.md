@@ -164,7 +164,6 @@ workshop](https://github.com/kappa-db/workshop) to use kappa-core yourself, or
 get support and/or chat about development on
 
 - IRC: #kappa-db on Freenode
-- [Cabal](https://cabal.chat): #kappa-db on `cabal://0201400f1aa2e3076a3f17f4521b2cc41e258c446cdaa44742afe6e1b9fd5f82`
 
 ## Example
 
