@@ -37,18 +37,18 @@ module.exports = class Kappa extends EventEmitter {
   use (name, view) {
     const self = this
     view.name = name
-    view.api = view.api || {}
-
     this.views[name] = view
-    this.api[name] = {
-      ready (cb) {
-        self.onViewIndexed(name, cb)
-      }
-    }
 
-    for (let [key, value] of Object.entries(view.api)) {
-      if (typeof value === 'function') value = value.bind(this.api[name], this)
-      this.api[name][key] = value
+    if (view.api) {
+      this.api[name] = {
+        ready (cb) {
+          self.onViewIndexed(name, cb)
+        }
+      }
+      for (let [key, value] of Object.entries(view.api)) {
+        if (typeof value === 'function') value = value.bind(this.api[name], this)
+        this.api[name][key] = value
+      }
     }
 
     if (this.opts.autoconnect || view.autoconnect) {
@@ -278,18 +278,25 @@ class Flow extends EventEmitter {
     process.nextTick(this._run.bind(this))
   }
 
+  // collectParents () {
+  //   let cur = this
+  //   let list = [cur]
+  //   while (cur.parent) {
+  //     list.push(cur.parent)
+  //     cur = cur.parent
+  //   }
+  //   return list
+  // }
+
   _onbatch (msgs, cb) {
-    const { source, view } = this
-
-    const steps = [
-      source.transform,
-      view.filter,
-      view.transform
-    ].filter(fn => fn)
-
+    let steps = [
+      this.source.transform,
+      this.view.filter,
+      this.view.transform
+    ].filter(f => f)
     runAll(msgs, steps, msgs => {
       if (!msgs.length) cb(null, msgs)
-      else view.map(msgs, () => cb(null, msgs))
+      else this.view.map(msgs, () => cb(null, msgs))
     })
   }
 
@@ -338,7 +345,7 @@ class Flow extends EventEmitter {
 
   _onsource (name, createSource, opts) {
     const fullname = this.source.name + ':' + name
-    opts.parent = this.name
+    opts.parent = this
     this.kappa.source(fullname, createSource, opts)
     const flow = this.kappa.connect(fullname, this.view.name)
     this.subflows.push(flow)
