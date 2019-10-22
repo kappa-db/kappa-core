@@ -1,5 +1,23 @@
 # kappa-core
 
+## **kappa-core WIP rewrite** ##
+
+Make the base Kappa core dependencyless.
+
+See `./kappa.js`. `Kappa` just deals with *sources* and *views*. Sources pull values based on their last state, views process values in a map function.
+
+`kappa.source(sourceName, createSource, opts)` registers a new source. `createSource` is invoked after the source is connected to a view and should return an object with at least `pull` handler.
+
+`kappa.use(viewName, view)` registers a new view (same as in kappa-core v4).
+
+`kappa.connect()` connects sourceName to a viewName, thus creating a *flow*. A flow can be started, stopped, restarted. The flow creates a source instance, handles state and pulls messages from the source instance.
+
+In `index.js` this new, dependencyless Kappa is wired to multifeed, creating an API compatible kappa-core. It passes `cabal-core` tests! And `multifeed-index` is not needed anymore even, just the two very simple functions in `sources/` (and the hypercoreSource can be used on its own also).
+
+More docs come soon.
+
+---
+
 > kappa-core is a minimal peer-to-peer database, based on append-only logs and materialized views.
 
 ## Introduction
