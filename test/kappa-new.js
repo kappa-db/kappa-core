@@ -76,7 +76,7 @@ function makeSimpleSource () {
     listeners.push(handlers.onupdate)
     const maxBatch = opts.maxBatch || 2
     return {
-      start (state, next) {
+      pull (state, next) {
         state = state || 0
         const end = Math.min(state + maxBatch, buf.length)
         const slice = buf.slice(state, end)

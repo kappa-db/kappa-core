@@ -303,7 +303,7 @@ class Flow extends EventEmitter {
 
     this.kappa._fetchState(this, (err, state) => {
       if (err) return this._onerror(err)
-      this.source.start(state, onbatch)
+      this.source.pull(state, onbatch)
     })
 
     function onbatch (nextState, msgs, workMore) {

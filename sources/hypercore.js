@@ -2,7 +2,7 @@ module.exports = function hypercoreSource (handlers, opts) {
   const maxBatch = opts.maxBatch || 50
   const feed = opts.feed
 
-  return { open, start }
+  return { open, pull }
 
   function open (next) {
     feed.ready(function () {
@@ -12,7 +12,7 @@ module.exports = function hypercoreSource (handlers, opts) {
     })
   }
 
-  function start (state, next) {
+  function pull (state, next) {
     const at = state || 0
     const to = Math.min(feed.length, at + maxBatch)
     if (!(to > at)) return next(at)

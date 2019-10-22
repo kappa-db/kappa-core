@@ -3,9 +3,9 @@ const hypercoreSource = require('./hypercore')
 module.exports = function multifeedSource (handlers, opts) {
   const feeds = opts.feeds
 
-  return { open, start }
+  return { open, pull }
 
-  function start (state, next) {
+  function pull (state, next) {
     next(state)
   }
 
