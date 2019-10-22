@@ -157,17 +157,16 @@ module.exports = class Kappa extends EventEmitter {
     const flows = this._flowsByView(viewName)
 
     flows.forEach(flow => flow.pause())
+    let pending = flows.length + 1
     if (view.clearIndex) view.clearIndex(restartFlows)
     else restartFlows()
 
-    let pending
     function restartFlows () {
-      pending = flows.length + 1
       flows.forEach(flow => flow.restart(finish))
       finish()
     }
     function finish () {
-      if (--pending === 0) cb()
+      if (--pending === 0 && cb) cb()
     }
   }
 
@@ -238,7 +237,7 @@ class Flow extends EventEmitter {
   ready (cb = noop) {
     const self = this
 
-    if (!this.opened) {
+    if (!this._opened) {
       return this.open(() => this.ready(cb))
     }
 
