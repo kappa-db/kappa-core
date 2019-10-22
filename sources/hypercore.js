@@ -2,7 +2,10 @@ module.exports = function hypercoreSource (handlers, opts) {
   const maxBatch = opts.maxBatch || 50
   const feed = opts.feed
 
-  return { open, pull }
+  // TODO: Maybe to this in the flow class, passing on opts?
+  const transform = opts.transform
+
+  return { open, pull, transform }
 
   function open (next) {
     feed.ready(function () {

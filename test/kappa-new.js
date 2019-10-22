@@ -3,6 +3,7 @@ const { Kappa } = require('..')
 const hypercore = require('hypercore')
 const ram = require('random-access-memory')
 const hypercoreSource = require('../sources/hypercore')
+// const { runAll } = require('./lib/util')
 
 function kappacore () {
   return new Kappa({ autoconnect: true, autostart: true })

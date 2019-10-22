@@ -19,9 +19,12 @@
     "inherits": "^2.0.4",
     "multifeed": "^4.0.0",
     "multifeed-index": "^3.3.2",
+    "stream-collector": "^1.0.1",
     "thunky": "^1.1.0"
   },
   "devDependencies": {
+    "hyperdrive": "^10",
+    "hyperdrive-schemas": "^0.12.0",
     "random-access-memory": "^3.1.1",
     "standard": "~12.0.1",
     "tape": "^4.11.0"
