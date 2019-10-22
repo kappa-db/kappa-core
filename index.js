@@ -1,6 +1,5 @@
 const Kappa = require('./kappa')
 
-// module.exports = (...args) => new Kappa(...args)
 module.exports = kappaClassic
 module.exports.Kappa = Kappa
 

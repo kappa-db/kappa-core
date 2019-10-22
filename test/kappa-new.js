@@ -11,8 +11,8 @@ function kappacore () {
 tape('simple source', t => {
   const kappa = kappacore()
 
-  const [source1, pushTo1] = prepareSimpleSource()
-  const [source2, pushTo2] = prepareSimpleSource()
+  const [source1, pushTo1] = makeSimpleSource()
+  const [source2, pushTo2] = makeSimpleSource()
 
   kappa.source('s1', source1)
   kappa.source('s2', source2)
@@ -66,9 +66,12 @@ tape('hypercore source', t => {
   setTimeout(() => t.end(), 1000)
 })
 
-function prepareSimpleSource () {
+function makeSimpleSource () {
   const buf = []
   const listeners = []
+
+  return [createSource, push]
+
   function createSource (handlers, opts) {
     listeners.push(handlers.onupdate)
     const maxBatch = opts.maxBatch || 2
@@ -82,11 +85,8 @@ function prepareSimpleSource () {
     }
   }
 
-  return [createSource, push]
-
   function push (value) {
-    if (Array.isArray(value)) buf.push(...value)
-    else buf.push(value)
+    buf.push(value)
     listeners.forEach(onupdate => onupdate())
   }
 }
