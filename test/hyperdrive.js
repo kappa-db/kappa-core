@@ -7,7 +7,7 @@ const { runAll } = require('./lib/util')
 const { Kappa } = require('..')
 const hyperdriveSource = require('../sources/hyperdrive')
 
-tape.only('hyperdrive source', async t => {
+tape('hyperdrive source', async t => {
   const cstore = corestore(ram)
   const drive1 = hyperdrive(cstore)
   const drive2 = hyperdrive(cstore)
