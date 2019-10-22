@@ -16,6 +16,8 @@ In `index.js` this new, dependencyless Kappa is wired to multifeed, creating an 
 
 More docs come soon.
 
+![kappa flow](kappa-flow.png)
+
 ---
 
 > kappa-core is a minimal peer-to-peer database, based on append-only logs and materialized views.
