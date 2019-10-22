@@ -16,7 +16,7 @@ In `index.js` this new, dependencyless Kappa is wired to multifeed, creating an 
 
 More docs come soon.
 
-![kappa flow](kappa-flow.png)
+![kappa flow](kappa-flow.svg)
 
 ---
 
