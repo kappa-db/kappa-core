@@ -18,7 +18,8 @@
     "hypercore": "^7.4.0",
     "inherits": "^2.0.4",
     "multifeed": "^4.0.0",
-    "multifeed-index": "^3.3.2"
+    "multifeed-index": "^3.3.2",
+    "thunky": "^1.1.0"
   },
   "devDependencies": {
     "random-access-memory": "^3.1.1",
