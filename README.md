@@ -6,7 +6,7 @@ Make the base Kappa core dependencyless.
 
 See `./kappa.js`. `Kappa` just deals with *sources* and *views*. Sources pull values based on their last state, views process values in a map function.
 
-`kappa.source(sourceName, createSource, opts)` registers a new source. `createSource` is invoked after the source is connected to a view and should return an object with at least `pull` handler.
+`kappa.source(sourceName, createSource, opts)` registers a new source. `createSource` is invoked after the source is connected to a view and should return an object with at least a `pull` handler.
 
 `kappa.use(viewName, view)` registers a new view (same as in kappa-core v4).
 

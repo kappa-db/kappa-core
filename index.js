@@ -10,7 +10,7 @@ function kappaClassic (storage, opts = {}) {
 
   const feeds = opts.multifeed || multifeed(hypercore, storage, opts)
 
-  const kappa = new Kappa({ autoconnect: true, autostart: true })
+  const kappa = new Kappa()
 
   kappa.source('multifeed', multifeedSource, { feeds })
 

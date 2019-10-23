@@ -14,7 +14,11 @@ module.exports = class Kappa extends EventEmitter {
    */
   constructor (opts = {}) {
     super()
-    this.opts = opts
+    this.opts = {
+      autoconnect: true,
+      autostart: true,
+      ...opts
+    }
     this.views = {}
     this.sources = {}
     this.api = {}
@@ -201,7 +205,7 @@ class Flow extends EventEmitter {
       onupdate: this._onupdate.bind(this),
       onerror: this._onerror.bind(this),
       onsource: this._onsource.bind(this)
-    }, opts)
+    }, opts, this.kappa)
     if (!this.source.name) this.source.name = opts.name
 
     this.name = this.source.name + '~' + this.view.name

@@ -32,10 +32,10 @@ module.exports = function hyperdriveSource (handlers, opts) {
   function pull (state, next) {
     const at = state || 0
     const to = Math.min(at + maxBatch, drive.version)
+    if (to <= at) return next()
     const diffStream = drive.checkout(to).createDiffStream(at)
     collect(diffStream, (err, res) => {
       next(to, res, to < drive.version)
-      diffStream.destroy()
     })
   }
 
@@ -49,7 +49,7 @@ module.exports = function hyperdriveSource (handlers, opts) {
         drive.stat(path, (err, stat) => {
           if (err || !stat || !stat.mount) return done()
           else {
-            node.mount = stat.mount
+            // node.mount = stat.mount
             mountToSource(path, stat.mount, done)
           }
         })
@@ -78,50 +78,43 @@ module.exports = function hyperdriveSource (handlers, opts) {
     if (hypercore) return cb()
     const subdrive = hyperdrive(drive._corestore, key)
     const hexkey = key.toString('hex')
-    handlers.onsource(hexkey, hyperdriveSource, {
-      ...opts,
-      drive: subdrive,
-      _mountDepth: _mountDepth + 1,
-      _mountPath: p.join(_mountPath || '', path),
-      _rootKey: _rootKey || key
+    subdrive.ready(() => {
+      handlers.onsource(hexkey, hyperdriveSource, {
+        ...opts,
+        drive: subdrive,
+        _mountDepth: _mountDepth + 1,
+        _mountPath: p.join(_mountPath || '', path),
+        _rootKey: _rootKey || key
+      })
+      cb(null, mountInfo)
     })
-    cb(null, mountInfo)
   }
 }
 
+// function onmetadatafeed (feed) {
+//   const name = feed.key.toString('hex')
+//   handlers.onsource(name, hypercoreSource, {
+//     feed,
+//     transform
+//   })
+// }
 
-
-
-
-
-
-
-
-
-  // function onmetadatafeed (feed) {
-  //   const name = feed.key.toString('hex')
-  //   handlers.onsource(name, hypercoreSource, {
-  //     feed,
-  //     transform
-  //   })
-  // }
-
-  // function transform (msgs, next) {
-  //   console.log('TRANSFORM', msgs.length)
-  //   msgs = msgs.map(msg => {
-  //     if (msg.seq === 0) return
-  //     console.log('pre', msg)
-  //     const node = Node.decode(msg.value)
-  //     console.log('NODE', {...node})
-  //     const stat = Stat.decode(node.valueBuffer)
-  //     msg.value = stat
-  //     console.log('post', msg)
-  //     return {
-  //       key: msg.key,
-  //       path: node.key,
-  //       seq: msg.seq,
-  //       value: stat
-  //     }
-  //   }).filter(m => m)
-  //   next(msgs)
-  // }
+// function transform (msgs, next) {
+//   console.log('TRANSFORM', msgs.length)
+//   msgs = msgs.map(msg => {
+//     if (msg.seq === 0) return
+//     console.log('pre', msg)
+//     const node = Node.decode(msg.value)
+//     console.log('NODE', {...node})
+//     const stat = Stat.decode(node.valueBuffer)
+//     msg.value = stat
+//     console.log('post', msg)
+//     return {
+//       key: msg.key,
+//       path: node.key,
+//       seq: msg.seq,
+//       value: stat
+//     }
+//   }).filter(m => m)
+//   next(msgs)
+// }

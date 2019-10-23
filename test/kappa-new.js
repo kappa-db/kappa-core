@@ -3,14 +3,9 @@ const { Kappa } = require('..')
 const hypercore = require('hypercore')
 const ram = require('random-access-memory')
 const hypercoreSource = require('../sources/hypercore')
-// const { runAll } = require('./lib/util')
-
-function kappacore () {
-  return new Kappa({ autoconnect: true, autostart: true })
-}
 
 tape('simple source', t => {
-  const kappa = kappacore()
+  const kappa = new Kappa()
 
   const [source1, pushTo1] = makeSimpleSource()
   const [source2, pushTo2] = makeSimpleSource()
@@ -45,7 +40,7 @@ tape('simple source', t => {
 })
 
 tape('hypercore source', t => {
-  const kappa = kappacore()
+  const kappa = new Kappa()
 
   const core1 = hypercore(ram, { valueEncoding: 'utf8' })
   const core2 = hypercore(ram, { valueEncoding: 'utf8' })
