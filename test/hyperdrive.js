@@ -8,7 +8,7 @@ const crypto = require('hypercore-crypto')
 const { Kappa } = require('..')
 const hyperdriveSource = require('../sources/hyperdrive')
 
-tape.only('hyperdrive source', async t => {
+tape('hyperdrive source', async t => {
   const cstore = corestore(ram)
   var drive1, drive2, drive3, driveB, kappa, kappaB
 

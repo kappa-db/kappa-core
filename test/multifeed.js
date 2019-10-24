@@ -6,26 +6,6 @@ const { runAll } = require('./lib/util')
 test('multifeed', async t => {
   const core = kappa(ram, { valueEncoding: 'json' })
 
-  function createSumView () {
-    let sum = 0
-    const sumview = {
-      api: {
-        get: function (core, cb) {
-          this.ready(function () {
-            cb(null, sum)
-          })
-        }
-      },
-      map: function (msgs, next) {
-        msgs.forEach(function (msg) {
-          if (typeof msg.value === 'number') sum += msg.value
-        })
-        next()
-      }
-    }
-    return sumview
-  }
-
   core.use('sum', createSumView())
 
   var feed1, feed2
@@ -48,6 +28,26 @@ test('multifeed', async t => {
 
   t.end()
 })
+
+function createSumView () {
+  let sum = 0
+  const sumview = {
+    api: {
+      get: function (core, cb) {
+        this.ready(function () {
+          cb(null, sum)
+        })
+      }
+    },
+    map: function (msgs, next) {
+      msgs.forEach(function (msg) {
+        if (typeof msg.value === 'number') sum += msg.value
+      })
+      next()
+    }
+  }
+  return sumview
+}
 
 function replicate (a, b, opts, cb) {
   if (typeof opts === 'function') return replicate(a, b, null, cb)
