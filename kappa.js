@@ -55,7 +55,7 @@ module.exports = class Kappa extends EventEmitter {
       }
     }
 
-    if (this.opts.autoconnect || view.autoconnect) {
+    if (this.opts.autoconnect) {
       Object.keys(this.sources).forEach(sourceName => this.connect(sourceName, name))
       this.on('source', sourceName => this.connect(sourceName, name))
     }
@@ -73,9 +73,9 @@ module.exports = class Kappa extends EventEmitter {
   source (name, createSource, opts = {}) {
     if (this.sources[name]) return
     opts.name = name
-    this.sources[name] = { createSource, opts, name }
+    this.sources[name] = { name, createSource, opts }
 
-    if (this.opts.autoconnect || opts.autoconnect) {
+    if (this.opts.autoconnect) {
       Object.keys(this.views).forEach(viewName => this.connect(name, viewName))
       this.on('view', viewName => this.connect(name, viewName))
     }
@@ -202,57 +202,42 @@ class Flow extends EventEmitter {
     this.opts = opts
 
     this.source = createSource({
-      onupdate: this._onupdate.bind(this),
-      onerror: this._onerror.bind(this),
-      onsource: this._onsource.bind(this)
+      onupdate: this._onupdate.bind(this)
     }, opts, this.kappa)
     if (!this.source.name) this.source.name = opts.name
 
     this.name = this.source.name + '~' + this.view.name
     this.parent = opts.parent
 
-    this.subflows = []
     this.status = Status.Ready
     this._opened = false
     this.open = thunky(this._open.bind(this))
   }
 
-  _open (cb) {
+  _open (cb = noop) {
     if (this._opened) return cb()
     const self = this
 
-    let pending = this.subflows.length + 1
-
+    let pending = 1
     if (this.view.open) ++pending && this.view.open(finish)
     if (this.source.open) ++pending && this.source.open(finish)
-    this.subflows.forEach(flow => flow.open(finish))
-
     finish()
 
     function finish () {
-      if (!(--pending === 0)) return
-      // self.status = Status.Ready
+      if (--pending !== 0) return
       self._opened = true
       self._run()
-      if (cb) cb()
+      cb()
     }
   }
 
   ready (cb = noop) {
     const self = this
 
-    if (!this._opened) {
-      return this.open(() => this.ready(cb))
-    }
+    if (!this._opened) return this.open(() => this.ready(cb))
 
-    let pending = this.subflows.length + 1
-    this.subflows.forEach(flow => flow.ready(finish))
-    finish()
-    function finish () {
-      if (--pending !== 0) return
-      if (self.status === Status.Ready) process.nextTick(cb)
-      else self.once('ready', cb)
-    }
+    if (self.status === Status.Ready) process.nextTick(cb)
+    else self.once('ready', cb)
   }
 
   pause () {
@@ -266,12 +251,12 @@ class Flow extends EventEmitter {
     else this._run()
   }
 
-  restart (cb) {
+  restart (cb = noop) {
     this.pause()
     process.nextTick(() => {
       this.kappa._storeState(this, null, () => {
         this.resume()
-        if (cb) cb()
+        cb()
       })
     })
   }
@@ -281,16 +266,6 @@ class Flow extends EventEmitter {
     this.incomingUpdate = true
     process.nextTick(this._run.bind(this))
   }
-
-  // collectParents () {
-  //   let cur = this
-  //   let list = [cur]
-  //   while (cur.parent) {
-  //     list.push(cur.parent)
-  //     cur = cur.parent
-  //   }
-  //   return list
-  // }
 
   _onbatch (msgs, cb) {
     let steps = [
@@ -313,7 +288,7 @@ class Flow extends EventEmitter {
     this.status = Status.Running
 
     this.kappa._fetchState(this, (err, state) => {
-      if (err) return this._onerror(err)
+      if (err) return close(err)
       this.source.pull(state, onbatch)
     })
 
@@ -321,19 +296,19 @@ class Flow extends EventEmitter {
       msgs = msgs || []
       if (self.status === Status.Paused) return close()
       self._onbatch(msgs, (err, msgs) => {
-        if (err) return self._onerror(err)
+        if (err) return close(err)
         self.kappa._storeState(self, nextState, err => {
-          if (err) return self._onerror(err)
-          close(msgs, workMore)
+          close(err, msgs, workMore)
         })
       })
     }
 
-    function close (msgs, workMore) {
-      self.status = Status.Ready
-      if (msgs.length && self.view.indexed) {
+    function close (err, msgs, workMore) {
+      if (err) self.kappa.emit(err, this)
+      else if (msgs.length && self.view.indexed) {
         self.view.indexed(msgs)
       }
+      self.status = Status.Ready
       if (self.incomingUpdate || workMore) {
         self.incomingUpdate = false
         process.nextTick(self._run.bind(self))
@@ -341,19 +316,6 @@ class Flow extends EventEmitter {
         self.emit('ready')
       }
     }
-  }
-
-  _onerror (err) {
-    this.kappa.emit(err, this)
-  }
-
-  _onsource (name, createSource, opts) {
-    const fullname = this.source.name + ':' + name
-    opts.parent = this
-    this.kappa.source(fullname, createSource, opts)
-    const flow = this.kappa.connect(fullname, this.view.name)
-    this.subflows.push(flow)
-    flow.open()
   }
 }
 

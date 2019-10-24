@@ -15,7 +15,6 @@
   },
   "keywords": [],
   "dependencies": {
-    "hypercore": "^7",
     "inherits": "^2.0.4",
     "multifeed": "^4.0.0",
     "multifeed-index": "^3.3.2",
@@ -25,6 +24,7 @@
   "devDependencies": {
     "bitfield-db": "^1.2.2",
     "corestore": "2",
+    "hypercore": "^8",
     "hyperdrive": "^10",
     "hyperdrive-schemas": "^0.12.0",
     "nanoiterator": "^1.2.0",
