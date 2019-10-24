@@ -45,6 +45,7 @@ module.exports = class Kappa extends EventEmitter {
 
     if (view.api) {
       this.api[name] = {
+        name,
         ready (cb) {
           self.onViewIndexed(name, cb)
         }
@@ -122,7 +123,7 @@ module.exports = class Kappa extends EventEmitter {
   }
 
   onViewIndexed (name, cb) {
-    const flows = this._flowsByView(name).filter(f => !f.parent)
+    const flows = this.flowsByView(name).filter(f => !f.parent)
     let pending = flows.length + 1
     flows.forEach(flow => flow.ready(done))
     done()
@@ -158,7 +159,7 @@ module.exports = class Kappa extends EventEmitter {
   clear (viewName, cb) {
     const view = this.views[viewName]
     if (!view) throw new Error('Unknown view: ' + viewName)
-    const flows = this._flowsByView(viewName)
+    const flows = this.flowsByView(viewName)
 
     flows.forEach(flow => flow.pause())
     let pending = flows.length + 1
@@ -174,11 +175,11 @@ module.exports = class Kappa extends EventEmitter {
     }
   }
 
-  _flowsByView (name) {
+  flowsByView (name) {
     return this.flows.filter(flow => flow.view.name === name)
   }
 
-  _flowsBySource (name) {
+  flowsBySource (name) {
     return this.flows.filter(flow => flow.source.name === name)
   }
 
