@@ -3,7 +3,6 @@ const ram = require('random-access-memory')
 const hyperdrive = require('hyperdrive')
 const corestore = require('corestore')
 const { runAll, replicate } = require('./lib/util')
-const crypto = require('hypercore-crypto')
 
 const { Kappa } = require('..')
 const hyperdriveSource = require('../sources/hyperdrive')
@@ -62,7 +61,6 @@ tape('hyperdrive source', async t => {
     cb => testResult(kappa, 'original kappa matches', cb)
   ])
 
-
   await runAll([
     // pause the kappa so that intermediate diffs are skipped
     // in a real-world scenario the views would have be aware
@@ -89,7 +87,7 @@ tape('hyperdrive source', async t => {
 
     // replicate the local and remote drives
     cb => replicate(drive1, driveB, cb),
-    
+
     cb => testResult(kappaB, 'replicated kappa matches', cb)
   ])
 

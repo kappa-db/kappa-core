@@ -32,7 +32,6 @@ tape('simple source', t => {
   ])
 })
 
-
 function makeSimpleView () {
   let res = []
   const view = {

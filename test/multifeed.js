@@ -11,20 +11,27 @@ test('multifeed', async t => {
   var feed1, feed2
 
   await runAll([
-    cb => core.writer('default', (err, feed) => (feed1 = feed, cb())),
-    cb => core.writer('second', (err, feed) => (feed2 = feed, cb())),
+    cb => core.writer('default', (err, feed) => {
+      t.error(err)
+      feed1 = feed
+      cb()
+    }),
+    cb => core.writer('second', (err, feed) => {
+      t.error(err)
+      feed2 = feed
+      cb()
+    }),
     cb => feed1.append(1, cb),
     cb => feed1.append(1, cb),
     cb => feed2.append(3, cb),
     cb => {
       core.api.sum.get(function (err, value) {
+        t.error(err)
         t.equals(5, value)
         cb()
       })
     }
   ])
-
-  const core2 = kappa(ram, { valueEncoding: 'json' })
 
   t.end()
 })
@@ -49,10 +56,10 @@ function createSumView () {
   return sumview
 }
 
-function replicate (a, b, opts, cb) {
-  if (typeof opts === 'function') return replicate(a, b, null, cb)
-  if (!opts) opts = { live: true }
-  const stream = a.replicate(opts)
-  stream.pipe(b.replicate(opts)).pipe(stream)
-  setImmediate(cb)
-}
+// function replicate (a, b, opts, cb) {
+//   if (typeof opts === 'function') return replicate(a, b, null, cb)
+//   if (!opts) opts = { live: true }
+//   const stream = a.replicate(opts)
+//   stream.pipe(b.replicate(opts)).pipe(stream)
+//   setImmediate(cb)
+// }

@@ -31,6 +31,7 @@ tape('hypercore source', t => {
 
   setImmediate(() => {
     kappa.api.view.collect((err, res) => {
+      t.error(err)
       t.deepEqual(res, [1, 2, 3])
       t.end()
     })

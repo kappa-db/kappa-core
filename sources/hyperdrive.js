@@ -38,6 +38,7 @@ function hyperdriveSingle (handlers, opts) {
     if (to <= at) return next()
     const diffStream = drive.checkout(to).createDiffStream(at)
     collect(diffStream, (err, msgs) => {
+      if (err) return next(state)
       transform(msgs, msgs => {
         next(to, msgs, to < drive.version)
       })
