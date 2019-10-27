@@ -26,7 +26,7 @@ module.exports = class Kappa extends EventEmitter {
     this._flowsByName = {}
     this._states = {}
     this._status = Status.Ready
-    this.ready = thunky(this._ready.bind(this))
+    this.open = thunky(this._open.bind(this))
   }
 
   /**
@@ -47,7 +47,7 @@ module.exports = class Kappa extends EventEmitter {
       this.api[name] = {
         name,
         ready (cb) {
-          self.onViewIndexed(name, cb)
+          self._onViewIndexed(name, cb)
         }
       }
       for (let [key, value] of Object.entries(view.api)) {
@@ -115,24 +115,27 @@ module.exports = class Kappa extends EventEmitter {
 
   connectAll () {
     for (const source of Object.values(this.sources)) {
-      if (source.parent) continue
       for (const view of Object.values(this.views)) {
         this.connect(source.name, view.name)
       }
     }
   }
 
-  onViewIndexed (name, cb) {
-    const flows = this.flowsByView(name).filter(f => !f.parent)
-    let pending = flows.length + 1
-    flows.forEach(flow => flow.ready(done))
-    done()
+  ready (viewNames, cb) {
+    if (!this._opened) return this.open(this.ready.bind(this, viewNames, cb))
+    if (typeof viewNames === 'function') return this.ready(null, viewNames)
+    if (typeof viewNames === 'string') viewNames = [viewNames]
+    if (!viewNames) viewNames = Object.keys(this.views)
+
+    let pending = viewNames.length
+    viewNames.forEach(viewName => this._onViewIndexed(viewName, done))
     function done () {
       if (--pending === 0) cb()
     }
   }
 
-  _ready (cb) {
+  _open (cb) {
+    const self = this
     if (this.opts.autoconnect) this.connectAll()
 
     let pending = this.flows.length + 1
@@ -140,7 +143,9 @@ module.exports = class Kappa extends EventEmitter {
     finish()
 
     function finish () {
-      if (--pending === 0) process.nextTick(cb)
+      if (--pending !== 0) return
+      self._opened = true
+      process.nextTick(cb)
     }
   }
 
@@ -183,6 +188,16 @@ module.exports = class Kappa extends EventEmitter {
     return this.flows.filter(flow => flow.source.name === name)
   }
 
+  _onViewIndexed (name, cb) {
+    let pending = this.flows.length + 1
+    this.flows.forEach(flow => flow.ready(done))
+    done()
+    function done () {
+      if (--pending === 0) cb()
+    }
+  }
+
+
   _fetchState (flow, cb) {
     // if (flow.view.fetchState) return flow.view.fetchState(flow, cb)
     cb(null, this._states[flow.name])
@@ -208,7 +223,6 @@ class Flow extends EventEmitter {
     if (!this.source.name) this.source.name = opts.name
 
     this.name = this.source.name + '~' + this.view.name
-    this.parent = opts.parent
 
     this.status = Status.Ready
     this._opened = false
@@ -269,6 +283,7 @@ class Flow extends EventEmitter {
   }
 
   _onbatch (msgs, cb) {
+    if (!msgs.length) cb(null, msgs)
     let steps = [
       this.source.transform,
       this.view.filter,
