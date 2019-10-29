@@ -17,6 +17,7 @@ function kappaClassic (storage, opts = {}) {
   kappa.writer = feeds.writer.bind(feeds)
   kappa.feed = feeds.feed.bind(feeds)
   kappa.replicate = feeds.replicate.bind(feeds)
+  kappa._logs = feeds
 
   return kappa
 }
