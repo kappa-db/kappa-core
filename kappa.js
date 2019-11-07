@@ -197,7 +197,6 @@ module.exports = class Kappa extends EventEmitter {
     }
   }
 
-
   _fetchState (flow, cb) {
     // if (flow.view.fetchState) return flow.view.fetchState(flow, cb)
     cb(null, this._states[flow.name])
@@ -217,9 +216,12 @@ class Flow extends EventEmitter {
     this.view = view
     this.opts = opts
 
-    this.source = createSource({
-      onupdate: this._onupdate.bind(this)
-    }, opts, this.kappa)
+    const context = {
+      onupdate: this._onupdate.bind(this),
+      view
+    }
+
+    this.source = createSource(context, opts)
     if (!this.source.name) this.source.name = opts.name
 
     this.name = this.source.name + '~' + this.view.name
