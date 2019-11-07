@@ -23,6 +23,7 @@ module.exports = function hypercoreSource (handlers, opts) {
       return next(at)
     }
     feed.getBatch(at, to, { wait: false }, (err, res) => {
+      handlers.onerror = handlers.onerror || function (err) { throw err }
       if (err) return handlers.onerror(err)
       res = res.map((node, i) => ({
         key: feed.key.toString('hex'),
