@@ -6,17 +6,53 @@ Make the base Kappa core dependencyless.
 
 See `./kappa.js`. `Kappa` just deals with *sources* and *views*. Sources pull values based on their last state, views process values in a map function.
 
-`kappa.source(sourceName, createSource, opts)` registers a new source. `createSource` is invoked after the source is connected to a view and should return an object with at least a `pull` handler.
-
-`kappa.use(viewName, view)` registers a new view (same as in kappa-core v4).
-
-`kappa.connect()` connects sourceName to a viewName, thus creating a *flow*. A flow can be started, stopped, restarted. The flow creates a source instance, handles state and pulls messages from the source instance.
-
-In `index.js` this new, dependencyless Kappa is wired to multifeed, creating an API compatible kappa-core. It passes `cabal-core` tests! And `multifeed-index` is not needed anymore even, just the two very simple functions in `sources/` (and the hypercoreSource can be used on its own also).
-
-More docs come soon.
-
 ![kappa flow](kappa-graph.svg)
+
+## API
+
+`const { Kappa } = require('kappa-core')`
+
+#### `const kappa = new Kappa(opts)`
+
+Create a new kappa core. opts are:
+* `autoconnect: boolean`: connect all sources to all views (default: true)
+* `autostart: boolean`: start indexing immediately (default: true)
+
+
+#### `kappa.source(sourceName, createSource, opts)` 
+
+Registers a new source.
+
+`createSource` is called with `(context, opts)` after the source is connected to a view. `context` is an object with:
+* `view`: The view this source instance is connected to
+* `onupdate`: A callback to signal to the kappa that this source has new data. This will trigger the `pull` function to be called (if processing is not paused).
+
+`createSource` has to return a source handler object with:
+
+* `pull: function (state, next)`: Pull new messages from the view. Should call `next(nextState, msgs, moreWork)` where `msgs` is an array of messages, `moreWork` is a boolean that indicates if `pull` should be called again right away. `state` and `nextState` are buffers (TODO: this is not enforced atm) that the source can use to track its indexing progress. If `state` is null, the indexing has to be restarted. If a source does its own proress tracking, it can ignore the state value (apart from null meaning rewind).
+
+#### `kappa.use(viewName, view)`
+
+Register a view. viewName is a string, 
+
+* `viewName` (string) the name of the view, has to be unique per kappa core
+* `view` object with properties `map (msgs, next) {}` (required) and optionally `filter (msgs, next) {}`
+
+
+#### `kappa.connect(sourceName, viewName)` 
+
+Create a source instance and connect it to a view. The combination of sourceInstance and view is called a *flow*. A flow can be started, stopped, restarted. The flow creates a source instance and pulls messages from the source instance.
+
+#### `kappa.clear(viewName)`
+
+#### `kappa.flowsBySource(sourceName)`
+
+#### `kappa.flowsByView(viewName)`
+
+
+## kappa classic
+
+In `index.js` this new, dependencyless Kappa is wired to multifeed, creating an API compatible kappa-core. This is the default export at the moment. It passes `cabal-core` tests! And `multifeed-index` is not needed anymore even, just the two very simple functions in `sources/` (and the hypercoreSource can be used on its own also).
 
 ---
 
