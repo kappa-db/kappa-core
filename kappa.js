@@ -288,6 +288,7 @@ class Flow extends EventEmitter {
     if (!msgs.length) cb(null, msgs)
     let steps = [
       this.source.transform,
+      this.opts.transform,
       this.view.filter,
       this.view.transform
     ].filter(f => f)
