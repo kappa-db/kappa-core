@@ -338,10 +338,12 @@ they're in the middle of processing and are fully stopped.
 Resume some or all paused views. If no `viewNames` is given, all views are
 resumed.
 
-### core.replicate([opts])
+### core.replicate(isInitiator, [opts])
 
 Create a duplex replication stream. `opts` are passed in to
 [multifeed](https://github.com/kappa-db/multifeed)'s API of the same name.
+
+Ensure that `isInitiator` to `true` to one side, and `false` on the other. This is necessary for setting up the encryption mechanism.
 
 ### core.on('error', function (err) {})
 

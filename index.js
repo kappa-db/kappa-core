@@ -1,6 +1,5 @@
 var inherits = require('inherits')
 var EventEmitter = require('events').EventEmitter
-var hypercore = require('hypercore')
 var multifeed = require('multifeed')
 var indexer = require('multifeed-index')
 
@@ -10,7 +9,7 @@ function Kappa (storage, opts) {
   if (!(this instanceof Kappa)) return new Kappa(storage, opts)
   if (!opts) opts = {}
 
-  this._logs = opts.multifeed || multifeed(hypercore, storage, opts)
+  this._logs = opts.multifeed || multifeed(storage, opts)
   this._indexes = {}
 
   this.api = {}
@@ -122,8 +121,8 @@ Kappa.prototype.feed = function (key) {
   return this._logs.feed(key)
 }
 
-Kappa.prototype.replicate = function (opts) {
-  return this._logs.replicate(opts)
+Kappa.prototype.replicate = function (isInitiator, opts) {
+  return this._logs.replicate(isInitiator, opts)
 }
 
 function noop () {}
