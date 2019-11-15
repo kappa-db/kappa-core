@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "bitfield-db": "^1.2.2",
-    "corestore": "2",
+    "corestore": "^4.0.0",
     "hypercore": "^8",
     "hyperdrive": "^10",
     "hyperdrive-schemas": "^0.12.0",

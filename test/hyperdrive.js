@@ -1,14 +1,17 @@
 const tape = require('tape')
 const ram = require('random-access-memory')
 const hyperdrive = require('hyperdrive')
-const corestore = require('corestore')
+const Corestore = require('corestore')
 const { runAll, replicate } = require('./lib/util')
 
 const { Kappa } = require('..')
 const hyperdriveSource = require('../sources/hyperdrive')
 
+function corestore (storage) { return new Corestore(storage) }
+
 tape('hyperdrive source', async t => {
   const cstore = corestore(ram)
+
   var drive1, drive2, drive3, driveB, kappa, kappaB
 
   const expected = [
