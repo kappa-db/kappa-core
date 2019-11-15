@@ -246,11 +246,10 @@ class StackedView {
 
   open (cb) {
     const self = this
-    const views = self.views.filter(v => v.open)
     next()
     function next (idx = 0) {
-      if (idx === views.length) return cb()
-      if (views[idx].open) views[idx].open(() => process.nextTick(next, idx + 1))
+      if (idx === self.views.length) return cb()
+      if (self.views[idx].open) self.views[idx].open(() => process.nextTick(next, idx + 1))
       else next(idx + 1)
     }
   }
@@ -262,6 +261,19 @@ class StackedView {
       if (idx === self.views.length) return cb()
       applyView(self.views[idx], msgs, () => process.nextTick(next, idx + 1))
     }
+  }
+
+  clearIndex (cb) {
+    let pending = this.views.length
+    this.views.views.forEach(view => view.clearIndex ? view.clearIndex(done) : done())
+    function done () { --pending === 0 && cb() }
+  }
+
+  get api () {
+    return this.views.reduce((agg, view) => {
+      agg[view.name] = view.api
+      return agg
+    }, {})
   }
 }
 
