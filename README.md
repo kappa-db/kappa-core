@@ -84,7 +84,7 @@ Get or create a local writable log called `name`. If it already exists, it is
 returned, otherwise it is created. A writer is an instance of
 [hypercore](https://github.com/mafintosh/hypercore).
 
-### var feed = multi.feed(key)
+### var feed = core.feed(key)
 
 Fetch a log / feed by its **public key** (a `Buffer` or hex string).
 
