@@ -5,27 +5,22 @@ const { runAll } = require('./lib/util')
 tape('simple source', t => {
   const kappa = new Kappa()
 
-  const [source1, pushTo1] = makeSimpleSource()
-  const [source2, pushTo2] = makeSimpleSource()
-  kappa.source('s1', source1)
-  kappa.source('s2', source2)
-  kappa.use('view1', makeSimpleView())
-  kappa.use('view2', makeSimpleView())
-
-  pushTo1(1)
-  pushTo1(2)
-  pushTo2(3)
-  pushTo2(4)
+  kappa.use('view1', makeSimpleSource(), makeSimpleView())
+  kappa.use('view2', makeSimpleSource(), makeSimpleView())
+  kappa.api.view1.source.push(1)
+  kappa.api.view1.source.push(2)
+  kappa.api.view2.source.push(3)
+  kappa.api.view2.source.push(4)
 
   runAll([
     cb => kappa.api.view1.collect((err, res) => {
       t.error(err)
-      t.deepEqual(res, [1, 2, 3, 4])
+      t.deepEqual(res, [1, 2])
       cb()
     }),
     cb => kappa.api.view2.collect((err, res) => {
       t.error(err)
-      t.deepEqual(res, [1, 2, 3, 4])
+      t.deepEqual(res, [3, 4])
       cb()
     }),
     cb => t.end()
@@ -48,27 +43,39 @@ function makeSimpleView () {
   return view
 }
 
-function makeSimpleSource () {
+function makeSimpleSource (opts = {}) {
   const buf = []
-  const listeners = []
+  const maxBatch = opts.maxBatch || 10
+  let flow = null
+  let state = 0
 
-  return [createSource, push]
-
-  function createSource (handlers, opts) {
-    listeners.push(handlers.onupdate)
-    const maxBatch = opts.maxBatch || 2
-    return {
-      pull (state, next) {
-        state = state || 0
-        const end = Math.min(state + maxBatch, buf.length)
-        const slice = buf.slice(state, end)
-        next(end, slice, end < buf.length)
+  const source = {
+    open (_flow, next) {
+      flow = _flow
+      next()
+    },
+    pull (next) {
+      const max = buf.length
+      const end = Math.min(state + maxBatch, max)
+      const messages = buf.slice(state, end)
+      next({
+        messages,
+        finished: end === max,
+        onindexed (cb) {
+          state = end
+          cb()
+        }
+      })
+    },
+    get api () {
+      return {
+        push (kappa, value) {
+          buf.push(value)
+          if (flow) flow.update()
+        }
       }
     }
   }
 
-  function push (value) {
-    buf.push(value)
-    listeners.forEach(onupdate => onupdate())
-  }
+  return source
 }

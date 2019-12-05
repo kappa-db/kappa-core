@@ -16,16 +16,15 @@
   "keywords": [],
   "dependencies": {
     "inherits": "^2.0.4",
-    "multifeed": "^4.0.0",
-    "multifeed-index": "^3.3.2",
     "stream-collector": "^1.0.1",
     "thunky": "^1.1.0"
   },
   "devDependencies": {
+    "multifeed": "^5",
     "bitfield-db": "^1.2.2",
     "corestore": "^4.0.0",
     "hypercore": "^8",
-    "hyperdrive": "^10",
+    "hyperdrive": "github:mafintosh/hyperdrive#hypercore-8",
     "hyperdrive-schemas": "^0.12.0",
     "nanoiterator": "^1.2.0",
     "random-access-memory": "^3.1.1",

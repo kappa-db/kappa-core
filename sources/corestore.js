@@ -1,23 +1,36 @@
 const hypercoreSource = require('./hypercore')
-const multi = require('./util/multisource')
+const mergePull = require('./util/merge-pull')
 
-module.exports = function corestoreSource (handlers, opts) {
+module.exports = function corestoreSource (opts) {
   const store = opts.store
-  const { pull, addSource } = multi(handlers)
-
-  return { open, pull }
-
-  function open (next) {
-    store.ready(() => {
-      store.list().forEach(feed => _onfeed(feed))
-      store.on('feed', feed => _onfeed(feed))
-      next()
-    })
+  const sources = []
+  let flow = null
+  return {
+    open (_flow, cb) {
+      flow = _flow
+      store.ready(() => {
+        store.list().forEach(feed => _onfeed(feed))
+        store.on('feed', feed => _onfeed(feed))
+        cb()
+      })
+    },
+    pull (next) {
+      mergePull(sources, next)
+    }
   }
 
   function _onfeed (feed, cb) {
     feed.ready(() => {
-      addSource(feed.key.toString('hex'), hypercoreSource, { feed })
+      const source = hypercoreSource({
+        feed,
+        box: opts.box,
+        prefix: (opts.prefix || '') + flow.name + '!' + feed.key.toString('hex')
+      })
+      sources.push(source)
+      source.open(flow, () => {
+        flow.update()
+        if (cb) cb()
+      })
     })
   }
 }

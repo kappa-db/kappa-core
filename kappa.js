@@ -15,124 +15,60 @@ module.exports = class Kappa extends EventEmitter {
   constructor (opts = {}) {
     super()
     this.opts = {
-      autoconnect: true,
       autostart: true,
       ...opts
     }
-    this.views = {}
-    this.sources = {}
     this.api = {}
-    this.flows = []
-    this._flowsByName = {}
-    this._states = {}
-    this._status = Status.Ready
+    this.flows = {}
     this.open = thunky(this._open.bind(this))
   }
 
-  /**
-   * Register a view in the kappa.
-   *
-   * @param {string} name a unique name for this view
-   * @param {object} view handlers object
-   * @param {function(msgs, next)} view.map process messages
-   * @param {function(msgs, next)} [view.filter] filter messages before map
-   * @param {function(msgs, next)} [view.clearIndex] clear index
-   */
-  use (name, view) {
-    view.name = name
-    this.views[name] = view
-
-    if (view.api) {
-      this._assignApi(name, view.api)
-    }
-
-    if (this.opts.autoconnect) {
-      Object.keys(this.sources).forEach(sourceName => this.connect(sourceName, name))
-      this.on('source', sourceName => this.connect(sourceName, name))
-    }
-
-    this.emit('view', view.name, view)
-  }
-
-  /**
-   * Register a stack of views in the kappa.
-   *
-   * All views will run together and in the order as passed in.
-   * If the view has an API, set its name property.
-   *
-   * @param {string} name a unique name for this stack
-   * @param {Array} views an array of view handler objects
-   */
-  useStack (name, views) {
-    views.forEach(view => {
-      if (view.name) this._assignApi(view.name, view.api)
-    })
-
-    this.use(name, new StackedView(views))
-  }
-
-  /**
-   * Register a source in the kappa.
-   *
-   * @param {string} name a unique name for this source
-   * @param {function} createSource source constructor
-   * @param {opts} opts
-   */
-  source (name, createSource, opts = {}) {
-    if (this.sources[name]) return
+  use (name, source, view, opts = {}) {
     opts.name = name
-    this.sources[name] = { name, createSource, opts }
-
-    if (this.opts.autoconnect) {
-      Object.keys(this.views).forEach(viewName => this.connect(name, viewName))
-      this.on('view', viewName => this.connect(name, viewName))
-    }
-
-    this.emit('source', name)
-  }
-
-  /**
-   * Connect a source to a view. Creates a new flow.
-   *
-   * @param {string} sourceName
-   * @param {string} viewName
-   * @return {object} flow
-   */
-  connect (sourceName, viewName) {
-    if (!this.views[viewName]) throw new Error('Unknown view: ' + viewName)
-    if (!this.sources[sourceName]) throw new Error('Unknown source: ' + sourceName)
-
-    const flowName = sourceName + '~' + viewName
-    if (this._flowsByName[flowName]) return this._flowsByName[flowName]
-
-    const view = this.views[viewName]
-    const { createSource, opts } = this.sources[sourceName]
-
-    const flow = new Flow(this, view, createSource, opts)
-
-    this.flows.push(flow)
-    this._flowsByName[flow.name] = flow
-
+    const flow = new Flow(this, { source, view, opts, status: this.status })
+    this.flows[name] = flow
+    this._assignApi(name, flow)
     if (this.opts.autostart) flow.open()
-
-    this.emit('connect', sourceName, viewName)
-
+    this.emit('view', name)
     return flow
   }
 
-  connectAll () {
-    for (const source of Object.values(this.sources)) {
-      for (const view of Object.values(this.views)) {
-        this.connect(source.name, view.name)
-      }
+  _open (cb) {
+    const flows = Object.values(this.flows)
+    let pending = flows.length
+    Object.values(flows).forEach(flow => {
+      flow.open(() => {
+        if (--pending === 0) cb()
+      })
+    })
+  }
+
+  pause () {
+    this.status = Status.Paused
+    const flows = Object.values(this.flows)
+    flows.forEach(flow => flow.pause())
+  }
+
+  resume () {
+    const flows = Object.values(this.flows)
+    if (this.status === Status.Paused) {
+      flows.forEach(flow => {
+        flow.resume()
+      })
+      this.status = Status.Ready
     }
   }
 
+  reset (name, cb) {
+    const flow = this.flows[name]
+    if (!flow) return cb(new Error('Unknown flow: ' + name))
+    flow.reset(cb)
+  }
+
   ready (viewNames, cb) {
-    if (!this._opened) return this.open(this.ready.bind(this, viewNames, cb))
     if (typeof viewNames === 'function') return this.ready(null, viewNames)
     if (typeof viewNames === 'string') viewNames = [viewNames]
-    if (!viewNames) viewNames = Object.keys(this.views)
+    if (!viewNames) viewNames = Object.keys(this.flows)
 
     // wait a tick
     process.nextTick(() => {
@@ -144,168 +80,66 @@ module.exports = class Kappa extends EventEmitter {
     })
   }
 
-  _open (cb) {
-    const self = this
-    if (this.opts.autoconnect) this.connectAll()
-
-    let pending = this.flows.length + 1
-    this.flows.forEach(flow => flow.open(finish))
-    finish()
-
-    function finish () {
-      if (--pending !== 0) return
-      self._opened = true
-      process.nextTick(cb)
-    }
-  }
-
-  pause (cb) {
-    this.status = Status.Paused
-    this.flows.forEach(flow => flow.pause())
-  }
-
-  resume (cb) {
-    if (this.status === Status.Paused) {
-      this.flows.forEach(flow => flow.resume())
-      this.status = Status.Ready
-    }
-  }
-
-  clear (viewName, cb) {
-    const view = this.views[viewName]
-    if (!view) throw new Error('Unknown view: ' + viewName)
-    const flows = this.flowsByView(viewName)
-
-    flows.forEach(flow => flow.pause())
-    let pending = flows.length + 1
-    if (view.clearIndex) view.clearIndex(restartFlows)
-    else restartFlows()
-
-    function restartFlows () {
-      flows.forEach(flow => flow.restart(finish))
-      finish()
-    }
-    function finish () {
-      if (--pending === 0 && cb) cb()
-    }
-  }
-
-  flowsByView (name) {
-    return this.flows.filter(flow => {
-      if (flow.view.name === name) return true
-      if (flow.view.views) return !!flow.view.views.find(view => view.name === name)
-      return false
-    })
-  }
-
-  flowsBySource (name) {
-    return this.flows.filter(flow => flow.source.name === name)
-  }
-
   _onViewIndexed (name, cb) {
-    const flows = this.flowsByView(name)
-    let pending = flows.length + 1
-    this.flows.forEach(flow => flow.ready(done))
-    done()
-    function done () {
-      if (--pending === 0) cb()
-    }
+    const flow = this.flows[name]
+    if (!flow) return cb(new Error('Unknown view: ' + name))
+    flow.ready(cb)
   }
 
-  _assignApi (name, api = {}) {
-    const self = this
+  _assignApi (name, flow) {
     this.api[name] = {
       name,
       ready (cb) {
-        self._onViewIndexed(name, cb)
+        flow.ready(cb)
       }
     }
     const context = this.opts.context || this
-    for (let [key, value] of Object.entries(api)) {
-      if (typeof value === 'function') value = value.bind(this.api[name], context)
-      this.api[name][key] = value
+    if (flow.view.api) {
+      for (let [key, value] of Object.entries(flow.view.api)) {
+        if (typeof value === 'function') value = value.bind(this.api[name], context)
+        this.api[name][key] = value
+      }
     }
-  }
 
-  _fetchState (flow, cb) {
-    // if (flow.view.fetchState) return flow.view.fetchState(flow, cb)
-    cb(null, this._states[flow.name])
-  }
-
-  _storeState (flow, state, cb) {
-    // if (flow.view.storeState) return flow.view.storeState(flow, state, cb)
-    this._states[flow.name] = state
-    cb()
-  }
-}
-
-class StackedView {
-  constructor (views) {
-    this.views = views
-  }
-
-  open (cb) {
-    const self = this
-    next()
-    function next (idx = 0) {
-      if (idx === self.views.length) return cb()
-      if (self.views[idx].open) self.views[idx].open(() => process.nextTick(next, idx + 1))
-      else next(idx + 1)
+    if (flow.source.api) {
+      this.api[name].source = {}
+      for (let [key, value] of Object.entries(flow.source.api)) {
+        if (typeof value === 'function') value = value.bind(this.api[name], context)
+        this.api[name].source[key] = value
+      }
     }
-  }
-
-  map (msgs, cb) {
-    const self = this
-    next()
-    function next (idx = 0) {
-      if (idx === self.views.length) return cb()
-      applyView(self.views[idx], msgs, () => process.nextTick(next, idx + 1))
-    }
-  }
-
-  clearIndex (cb) {
-    let pending = this.views.length
-    this.views.views.forEach(view => view.clearIndex ? view.clearIndex(done) : done())
-    function done () { --pending === 0 && cb() }
-  }
-
-  get api () {
-    return this.views.reduce((agg, view) => {
-      agg[view.name] = view.api
-      return agg
-    }, {})
   }
 }
 
 class Flow extends EventEmitter {
-  constructor (kappa, view, createSource, opts) {
+  constructor (kappa, { source, view, opts = {}, status }) {
     super()
-    this.kappa = kappa
-    this.view = view
+
     this.opts = opts
+    this.kappa = kappa
+    this.name = opts.name
+    this.view = view
+    this.source = source
 
-    const context = {
-      onupdate: this._onupdate.bind(this),
-      view
-    }
-
-    this.source = createSource(context, opts)
-    if (!this.source.name) this.source.name = opts.name
-
-    this.name = this.source.name + '~' + this.view.name
-
-    this.status = Status.Ready
+    this.status = status || Status.Ready
     this._opened = false
     this.open = thunky(this._open.bind(this))
+  }
+
+  get version () {
+    return this.view.version
   }
 
   _open (cb = noop) {
     if (this._opened) return cb()
     const self = this
+    let pending = 1
+    if (this.view.open) ++pending && this.view.open(this, done)
+    if (this.source.open) ++pending && this.source.open(this, done)
+    done()
 
-    awaitAll([this.view, this.source], 'open', finish)
-
-    function finish () {
+    function done () {
+      if (--pending !== 0) return
       self._opened = true
       self._run()
       cb()
@@ -332,24 +166,29 @@ class Flow extends EventEmitter {
     else this._run()
   }
 
-  restart (cb = noop) {
+  reset (cb = noop) {
+    const self = this
     this.pause()
     process.nextTick(() => {
-      this.kappa._storeState(this, null, () => {
-        this.resume()
+      if (this.view.clearIndex) this.view.clearIndex(reset)
+      else reset()
+    })
+    function reset () {
+      self.source.reset(() => {
+        self.resume()
         cb()
       })
-    })
+    }
   }
 
-  _onupdate () {
+  update () {
     if (!this._opened) return
     this.incomingUpdate = true
     process.nextTick(this._run.bind(this))
   }
 
   _onbatch (msgs, cb) {
-    if (!msgs.length) cb(null, msgs)
+    if (!msgs.length) return cb(null, msgs)
     let prepare = [this.source.transform, this.opts.transform]
     runThrough(msgs, prepare, msgs => {
       applyView(this.view, msgs, () => cb(null, msgs))
@@ -364,29 +203,32 @@ class Flow extends EventEmitter {
 
     this.status = Status.Running
 
-    this.kappa._fetchState(this, (err, state) => {
-      if (err) return close(err)
-      this.source.pull(state, onbatch)
-    })
+    this.source.pull(onbatch)
 
-    function onbatch (nextState, msgs, workMore) {
-      msgs = msgs || []
+    function onbatch (result) {
+      if (!result) return close()
       if (self.status === Status.Paused) return close()
-      self._onbatch(msgs, (err, msgs) => {
+      const { messages = [], finished, onindexed } = result
+      self._onbatch(messages, (err, messages) => {
         if (err) return close(err)
-        self.kappa._storeState(self, nextState, err => {
-          close(err, msgs, workMore)
-        })
+        close(null, { messages, finished, onindexed })
       })
     }
 
-    function close (err, msgs, workMore) {
-      if (err) self.kappa.emit(err, this)
-      else if (msgs.length && self.view.indexed) {
-        self.view.indexed(msgs)
+    function close (err, result) {
+      if (err) self.kappa.emit('error', err, this)
+      if (!result) return finish(true)
+      const { messages, finished, onindexed } = result
+      if (messages.length && self.view.indexed) {
+        self.view.indexed(messages)
       }
+      if (onindexed) onindexed(() => finish(finished))
+      else finish(finished)
+    }
+
+    function finish (finished) {
       self.status = Status.Ready
-      if (self.incomingUpdate || workMore) {
+      if (self.incomingUpdate || !finished) {
         self.incomingUpdate = false
         process.nextTick(self._run.bind(self))
       } else {
@@ -416,16 +258,16 @@ function runThrough (state, fns, final) {
   }
 }
 
-function awaitAll (objs, fn, args, cb) {
-  if (typeof args === 'function') return awaitAll(objs, fn, [], args)
-  objs = objs.filter(obj => obj[fn])
-  let pending = objs.length
-  if (!pending) return cb()
-  args.push(done)
-  objs.forEach(obj => obj[fn](...args))
-  function done () {
-    if (--pending === 0) cb()
-  }
-}
+// function awaitAll (objs, fn, args, cb) {
+//   if (typeof args === 'function') return awaitAll(objs, fn, [], args)
+//   objs = objs.filter(obj => obj[fn])
+//   let pending = objs.length
+//   if (!pending) return cb()
+//   args.push(done)
+//   objs.forEach(obj => obj[fn](...args))
+//   function done () {
+//     if (--pending === 0) cb()
+//   }
+// }
 
 function noop () {}

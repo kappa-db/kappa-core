@@ -21,7 +21,7 @@ function hyperdriveSingle (handlers, opts) {
 
   var key
 
-  return { open, pull, transform }
+  return { open, pull }
 
   function open (next) {
     drive.ready(() => {
@@ -46,6 +46,7 @@ function hyperdriveSingle (handlers, opts) {
   }
 
   function transform (msgs, next) {
+    console.log(msgs)
     for (const node of msgs) {
       if (_mountInfo) {
         node.name = p.join(_mountInfo.path, node.name)
@@ -98,14 +99,15 @@ function hyperdriveMounts (handlers, opts) {
 
       const subdrive = hyperdrive(drive._corestore, key)
       subdrive.ready(() => {
-        addSource(key.toString('hex'), hyperdriveSingle, {
-          ...opts,
-          drive: subdrive,
-          _mountInfo: {
-            key: node.key,
-            path
-          }
-        })
+        console.log('ADS', key.toString('hex', node.key), node.key, path)
+        // addSource(key.toString('hex'), hyperdriveSingle, {
+        //   ...opts,
+        //   drive: subdrive,
+        //   _mountInfo: {
+        //     key: node.key,
+        //     path
+        //   }
+        // })
         done()
       })
     })

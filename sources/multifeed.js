@@ -1,13 +1,16 @@
 const hypercoreSource = require('./hypercore')
-const multi = require('./util/multisource')
+const mergePull = require('./util/merge-pull')
 
-module.exports = function multifeedSource (handlers, opts) {
-  const { pull, addSource } = multi(handlers)
+module.exports = function multifeedSource (opts) {
   const multifeed = opts.feeds
+  const box = opts.box
+  let flow
+  const sources = []
 
   return { pull, open }
 
-  function open (next) {
+  function open (_flow, next) {
+    flow = _flow
     multifeed.ready(() => {
       multifeed.feeds().forEach(feed => _onfeed(feed))
       multifeed.on('feed', feed => _onfeed(feed))
@@ -15,9 +18,19 @@ module.exports = function multifeedSource (handlers, opts) {
     })
   }
 
+  function pull (next) {
+    mergePull(sources, next)
+  }
+
   function _onfeed (feed, cb) {
     feed.ready(() => {
-      addSource(feed.key.toString('hex'), hypercoreSource, { feed })
+      const source = hypercoreSource({
+        feed,
+        box,
+        prefix: feed.key.toString('hex')
+      })
+      sources.push(source)
+      source.open(flow, cb)
     })
   }
 }

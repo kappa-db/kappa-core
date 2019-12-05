@@ -1,36 +1,61 @@
-module.exports = function hypercoreSource (handlers, opts) {
-  const maxBatch = opts.maxBatch || 50
-  const feed = opts.feed
+const State = require('./util/state')
 
-  // TODO: Maybe to this in the flow class, passing on opts?
-  const transform = opts.transform
+module.exports = (...args) => new HypercoreSource(...args)
 
-  return { open, pull, transform }
+class HypercoreSource {
+  constructor (opts = {}) {
+    this.opts = opts
+    this.feed = opts.feed
+    this.maxBatch = opts.maxBatch || 50
+  }
 
-  function open (next) {
-    feed.ready(function () {
-      feed.on('append', handlers.onupdate)
-      feed.on('download', handlers.onupdate)
-      next()
+  open (flow, cb) {
+    this.flow = flow
+    this.state = new State({
+      prefix: flow.name,
+      box: this.opts.box
+    })
+    this.feed.on('append', () => flow.update())
+    this.feed.on('download', () => flow.update())
+    this.flow.update()
+    this.state.putVersion(flow.version, cb)
+  }
+
+  pull (cb) {
+    this.state.get((err, seq) => {
+      if (err) return cb(err)
+      return this._pull(seq, cb)
     })
   }
 
-  function pull (state, next) {
-    const at = state || 0
-    const to = Math.min(feed.length, at + maxBatch)
-    if (!(to > at)) return next(at)
+  _pull (at, next) {
+    const self = this
+    const feed = this.feed
+    const len = feed.length
+    const to = Math.min(len, at + this.maxBatch)
+
+    if (!(to > at)) return next()
+
     if (!feed.has(at, to)) {
-      return next(at)
+      return next({ finished: true })
     }
+
     feed.getBatch(at, to, { wait: false }, (err, res) => {
-      handlers.onerror = handlers.onerror || function (err) { throw err }
-      if (err) return handlers.onerror(err)
+      if (err) return next()
+
       res = res.map((node, i) => ({
         key: feed.key.toString('hex'),
         seq: at + i,
         value: node
       }))
-      next(to, res, to < feed.length)
+
+      next({
+        messages: res,
+        finished: to === len,
+        onindexed (cb) {
+          self.state.put(to, cb)
+        }
+      })
     })
   }
 }

@@ -29,25 +29,33 @@ Registers a new source.
 
 `createSource` has to return a source handler object with:
 
-* `pull: function (state, next)`: Pull new messages from the view. Should call `next(nextState, msgs, moreWork)` where `msgs` is an array of messages, `moreWork` is a boolean that indicates if `pull` should be called again right away. `state` and `nextState` are buffers (TODO: this is not enforced atm) that the source can use to track its indexing progress. If `state` is null, the indexing has to be restarted. If a source does its own proress tracking, it can ignore the state value (apart from null meaning rewind).
 
-#### `kappa.use(viewName, view)`
+#### `kappa.use(name, source, view)`
 
 Register a view. viewName is a string, 
 
 * `viewName` (string) the name of the view, has to be unique per kappa core
-* `view` object with properties `map (msgs, next) {}` (required) and optionally `filter (msgs, next) {}`
+* `source` object with properties
+  * `open: function (flow, next)` (optional)
+  * `pull: function (next)`: Pull new messages from the view. Should call `next` with either nothing or an object that looks like this:
+   ```javascript
+   {
+      messages: [], // array of messages,
+      finished: true, // if set to false, signal that more messages are pending
+      onindexed: function (cb) {} // will be called when the view finished indexing
+   }
+   ```
+   The source has to track its state, so that subsequent calls to `pull()` do not return the same messages.
 
-
-#### `kappa.connect(sourceName, viewName)` 
-
-Create a source instance and connect it to a view. The combination of sourceInstance and view is called a *flow*. A flow can be started, stopped, restarted. The flow creates a source instance and pulls messages from the source instance.
+   There are several source handlers included in kappa-core (TODO: document sources). See the tests and sources directories.
+  * `reset: function (cb) {}`: Reset internal state and restart indexing.
+* `view` object with properties 
+  * `open: function (flow, next)` (optional)
+  * `map: function (msgs, next)` (required) 
+  * `filter: function (msgs, next)` (optional), 
 
 #### `kappa.clear(viewName)`
 
-#### `kappa.flowsBySource(sourceName)`
-
-#### `kappa.flowsByView(viewName)`
 
 
 ## kappa classic

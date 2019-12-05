@@ -10,13 +10,10 @@ tape('corestore source', t => {
   const store = new Corestore(ram)
   store.ready(() => {
     const core1 = store.default({ valueEncoding: 'json' })
-
-    kappa.source('corestore', corestoreSource, { store })
-
     const core2 = store.get({ valueEncoding: 'json' })
 
     let res = []
-    kappa.use('view', {
+    kappa.use('view', corestoreSource({ store }), {
       map (msgs, next) {
         res = res.concat(msgs.map(msg => msg.value))
         next()
@@ -35,7 +32,7 @@ tape('corestore source', t => {
     setImmediate(() => {
       kappa.api.view.collect((err, res) => {
         t.error(err)
-        t.deepEqual(res, [1, 2, 3])
+        t.deepEqual(res.sort(), [1, 2, 3])
         t.end()
       })
     })
