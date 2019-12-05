@@ -8,11 +8,11 @@ module.exports = class SimpleState {
   }
 
   get _STATE () {
-    return this.prefix + '!state'
+    return this.prefix + '!state!'
   }
 
   get _VERSION () {
-    return this.prefix + '!version'
+    return this.prefix + '!version!'
   }
 
   prefix (prefix) {
@@ -22,28 +22,23 @@ module.exports = class SimpleState {
     })
   }
 
-  get (cb) {
-    getInt(this.box, this._STATE, cb)
+  get (name, cb) {
+    if (!cb) return this.get('', name)
+    const key = this._STATE + name
+    getInt(this.box, key, cb)
   }
 
-  put (seq, cb) {
-    putInt(this.box, this._STATE, seq, cb)
+  put (name, seq, cb) {
+    if (!cb) return this.put('', name, seq)
+    const key = this._STATE + name
+    putInt(this.box, key, seq, cb)
   }
 
-  putVersion (version, cb) {
-    this.getVersion((err, lastVersion) => {
-      if (err) return cb(err)
-      if (version !== lastVersion) {
-        this.version = version
-        this.put(0, err => {
-          if (err) cb(err)
-          putInt(this.box, this._VERSION, version, cb)
-        })
-      }
-    })
+  storeVersion (version, cb) {
+    putInt(this.box, this._VERSION, version, cb)
   }
 
-  getVersion (cb) {
+  fetchVersion (cb) {
     getInt(this.box, this._VERSION, cb)
   }
 }
@@ -63,3 +58,17 @@ function putInt (db, key, int, cb) {
 }
 
 function noop () {}
+
+// module.exports = class StatefulSource {
+//   constructor (opts) {
+//     this.state = new SimpleState(opts)
+//   }
+
+//   fetchVersion (cb) {
+//     this.state.getVersion(cb)
+//   }
+
+//   storeVersion (version, cb) {
+//     this.state.setVersion(version, cb)
+//   }
+// }

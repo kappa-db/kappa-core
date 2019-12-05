@@ -30,7 +30,7 @@ tape('corestore source', t => {
     core1.append(3)
 
     setImmediate(() => {
-      kappa.api.view.collect((err, res) => {
+      kappa.view.view.collect((err, res) => {
         t.error(err)
         t.deepEqual(res.sort(), [1, 2, 3])
         t.end()

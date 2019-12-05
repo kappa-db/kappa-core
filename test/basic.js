@@ -7,18 +7,18 @@ tape('simple source', t => {
 
   kappa.use('view1', makeSimpleSource(), makeSimpleView())
   kappa.use('view2', makeSimpleSource(), makeSimpleView())
-  kappa.api.view1.source.push(1)
-  kappa.api.view1.source.push(2)
-  kappa.api.view2.source.push(3)
-  kappa.api.view2.source.push(4)
+  kappa.source.view1.push(1)
+  kappa.source.view1.push(2)
+  kappa.source.view2.push(3)
+  kappa.source.view2.push(4)
 
   runAll([
-    cb => kappa.api.view1.collect((err, res) => {
+    cb => kappa.view.view1.collect((err, res) => {
       t.error(err)
       t.deepEqual(res, [1, 2])
       cb()
     }),
-    cb => kappa.api.view2.collect((err, res) => {
+    cb => kappa.view.view2.collect((err, res) => {
       t.error(err)
       t.deepEqual(res, [3, 4])
       cb()
@@ -27,16 +27,51 @@ tape('simple source', t => {
   ])
 })
 
+tape('reset', t => {
+  const kappa = new Kappa()
+  const foo = kappa.use('foo', makeSimpleSource(), makeSimpleView())
+  foo.source.push(1)
+  foo.source.push(2)
+  foo.source.push(3)
+  runAll([
+    cb => foo.view.collect((err, res) => {
+      t.error(err)
+      t.deepEqual(res, [1, 2, 3])
+      t.equal(kappa.view.foo.clearedCount(), 0)
+      cb()
+    }),
+    cb => {
+      kappa.reset('foo', cb)
+    },
+    cb => foo.view.collect((err, res) => {
+      t.error(err)
+      t.deepEqual(res, [1, 2, 3])
+      t.equal(kappa.view.foo.clearedCount(), 1)
+      cb()
+    }),
+    cb => t.end()
+  ])
+})
+
 function makeSimpleView () {
   let res = []
+  let clears = 0
   const view = {
     map (msgs, next) {
       res = res.concat(msgs)
       next()
     },
+    clearIndex (cb) {
+      clears = clears + 1
+      res = []
+      cb()
+    },
     api: {
       collect (kappa, cb) {
         this.ready(() => cb(null, res))
+      },
+      clearedCount (kappa) {
+        return clears
       }
     }
   }
@@ -66,6 +101,10 @@ function makeSimpleSource (opts = {}) {
           cb()
         }
       })
+    },
+    reset (next) {
+      state = 0
+      next()
     },
     get api () {
       return {

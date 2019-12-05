@@ -1,31 +1,46 @@
-const State = require('./util/state')
+const SimpleState = require('./util/state')
 
 module.exports = (...args) => new HypercoreSource(...args)
 
 class HypercoreSource {
   constructor (opts = {}) {
-    this.opts = opts
     this.feed = opts.feed
     this.maxBatch = opts.maxBatch || 50
+    this.state = opts.state || new SimpleState(opts)
   }
 
   open (flow, cb) {
     this.flow = flow
-    this.state = new State({
-      prefix: flow.name,
-      box: this.opts.box
-    })
     this.feed.on('append', () => flow.update())
     this.feed.on('download', () => flow.update())
-    this.flow.update()
-    this.state.putVersion(flow.version, cb)
+    this.feed.ready(cb)
+  }
+
+  fetchVersion (cb) {
+    this.state.fetchVersion(cb)
+  }
+
+  storeVersion (version, cb) {
+    this.state.storeVersion(version, cb)
+  }
+
+  reset (cb) {
+    this.state.set(0, cb)
+  }
+
+  get name () {
+    return this.feed.key.toString('hex')
   }
 
   pull (cb) {
-    this.state.get((err, seq) => {
+    this.state.get(this.name, (err, seq) => {
       if (err) return cb(err)
       return this._pull(seq, cb)
     })
+  }
+
+  reset (cb) {
+    this.state.put(this.name, 0, cb)
   }
 
   _pull (at, next) {
@@ -53,7 +68,7 @@ class HypercoreSource {
         messages: res,
         finished: to === len,
         onindexed (cb) {
-          self.state.put(to, cb)
+          self.state.put(self.name, to, cb)
         }
       })
     })

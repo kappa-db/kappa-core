@@ -18,49 +18,51 @@ Create a new kappa core. opts are:
 * `autoconnect: boolean`: connect all sources to all views (default: true)
 * `autostart: boolean`: start indexing immediately (default: true)
 
-
-#### `kappa.source(sourceName, createSource, opts)` 
-
-Registers a new source.
-
-`createSource` is called with `(context, opts)` after the source is connected to a view. `context` is an object with:
-* `view`: The view this source instance is connected to
-* `onupdate`: A callback to signal to the kappa that this source has new data. This will trigger the `pull` function to be called (if processing is not paused).
-
-`createSource` has to return a source handler object with:
-
-
 #### `kappa.use(name, source, view)`
 
-Register a view. viewName is a string, 
+Register a flow. 
 
-* `viewName` (string) the name of the view, has to be unique per kappa core
-* `source` object with properties
-  * `open: function (flow, next)` (optional)
+* `name` (string) the name of the flow, has to be unique per kappa core
+* `source` object with properties:
+  * `open: function (flow, next)`: (optional) Handler to call on open
   * `pull: function (next)`: Pull new messages from the view. Should call `next` with either nothing or an object that looks like this:
    ```javascript
    {
-      messages: [], // array of messages,
+      messages: [], // array of messages
       finished: true, // if set to false, signal that more messages are pending
       onindexed: function (cb) {} // will be called when the view finished indexing
    }
    ```
-   The source has to track its state, so that subsequent calls to `pull()` do not return the same messages.
+   The source has to track its state, so that subsequent calls to `pull()` do not return the same messages. Use the `onindexed` callback to update state.
 
    There are several source handlers included in kappa-core (TODO: document sources). See the tests and sources directories.
-  * `reset: function (cb) {}`: Reset internal state and restart indexing.
+
+  * `reset: function (cb)`: Reset internal state (next pull should start at the beginning).
+  * `storeVersion: function (version, cb)`: Store the flow version somewhere
+  * `fetchVersion: function (cb)`: Fetch the version stored with storeVersion
 * `view` object with properties 
-  * `open: function (flow, next)` (optional)
   * `map: function (msgs, next)` (required) 
-  * `filter: function (msgs, next)` (optional), 
+  * `open: function (flow, next)` (optional)
+  * `filter: function (msgs, next)` (optional)
+  * `version: int`
 
-#### `kappa.clear(viewName)`
+Both `source` and `view` can have an `api` property with an object of function. The functions are exposed on `kappa.view[name]` / `kappa.source[name]`. Their `this` object refers to the flow, and their first parameter is the `kappa`. Other parameters are passed through.
 
+#### `kappa.reset(name, cb)`
 
+Reset a specific flow, to restart indexing. This is equal to reopening the kappa-core with a changed view version for this flow.
 
-## kappa classic
+#### `kappa.ready(names, cb)`
 
-In `index.js` this new, dependencyless Kappa is wired to multifeed, creating an API compatible kappa-core. This is the default export at the moment. It passes `cabal-core` tests! And `multifeed-index` is not needed anymore even, just the two very simple functions in `sources/` (and the hypercoreSource can be used on its own also).
+Call `cb` after all flows with a name in the `names` array have finished processing. If `names` is empty, all flows will be awaited.
+
+#### `kappa.pause()`
+
+Pause processing of all flows
+
+#### `kappa.resume()`
+
+Resume processing of all flows
 
 ---
 

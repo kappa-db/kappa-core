@@ -1,36 +1,43 @@
 const hypercoreSource = require('./hypercore')
 const mergePull = require('./util/merge-pull')
+const SimpleState = require('./util/state')
 
 module.exports = function multifeedSource (opts) {
-  const multifeed = opts.feeds
-  const box = opts.box
-  let flow
+  const state = new SimpleState(opts)
+  const feeds = opts.feeds
   const sources = []
 
-  return { pull, open }
-
-  function open (_flow, next) {
-    flow = _flow
-    multifeed.ready(() => {
-      multifeed.feeds().forEach(feed => _onfeed(feed))
-      multifeed.on('feed', feed => _onfeed(feed))
-      next()
-    })
-  }
-
-  function pull (next) {
-    mergePull(sources, next)
-  }
-
-  function _onfeed (feed, cb) {
-    feed.ready(() => {
-      const source = hypercoreSource({
-        feed,
-        box,
-        prefix: feed.key.toString('hex')
+  return {
+    open (flow, next) {
+      feeds.ready(() => {
+        feeds.feeds().forEach(feed => onfeed(flow, feed))
+        feeds.on('feed', feed => onfeed(flow, feed))
+        next()
       })
-      sources.push(source)
-      source.open(flow, cb)
+    },
+    pull (next) {
+      mergePull(sources, next)
+    },
+    reset (cb) {
+      let pending = sources.length
+      sources.forEach(source => source.reset(done))
+      function done () {
+        if (--pending === 0) cb()
+      }
+    },
+    fetchVersion (cb) { state.fetchVersion(cb) },
+    storeVersion (version, cb) { state.storeVersion(version, cb) }
+  }
+
+  function onfeed (flow, feed, cb) {
+    const source = hypercoreSource({
+      feed,
+      state
+    })
+    sources.push(source)
+    source.open(flow, () => {
+      flow.update()
+      if (cb) cb()
     })
   }
 }

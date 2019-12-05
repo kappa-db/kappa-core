@@ -18,45 +18,48 @@ module.exports = class Kappa extends EventEmitter {
       autostart: true,
       ...opts
     }
-    this.api = {}
     this.flows = {}
     this.open = thunky(this._open.bind(this))
+
+    // APIs
+    this.view = {}
+    this.source = {}
   }
 
   use (name, source, view, opts = {}) {
-    opts.name = name
-    const flow = new Flow(this, { source, view, opts, status: this.status })
+    opts.status = opts.status || this.status
+    opts.context = opts.context || this
+    const flow = new Flow(name, source, view, opts)
     this.flows[name] = flow
-    this._assignApi(name, flow)
-    if (this.opts.autostart) flow.open()
-    this.emit('view', name)
+    this.view[name] = flow.view
+    this.source[name] = flow.source
+    flow.on('error', err => this.emit('error', err, flow))
+
+    if (this.opts.autostart) this.flows[name].open()
+
+    this.emit('flow', name)
+
     return flow
   }
 
   _open (cb) {
-    const flows = Object.values(this.flows)
-    let pending = flows.length
-    Object.values(flows).forEach(flow => {
-      flow.open(() => {
-        if (--pending === 0) cb()
-      })
-    })
+    let pending = Object.keys(this.flows.length)
+    if (!pending) return cb()
+    Object.values(this.flows).forEach(flow => flow.open(done))
+    function done () {
+      if (--pending === 0) cb()
+    }
   }
 
   pause () {
     this.status = Status.Paused
-    const flows = Object.values(this.flows)
-    flows.forEach(flow => flow.pause())
+    Object.values(this.flows).forEach(flow => flow.pause())
   }
 
   resume () {
-    const flows = Object.values(this.flows)
-    if (this.status === Status.Paused) {
-      flows.forEach(flow => {
-        flow.resume()
-      })
-      this.status = Status.Ready
-    }
+    if (this.status !== Status.Paused) return
+    Object.values(this.flows).forEach(flow => flow.resume())
+    this.status = Status.Ready
   }
 
   reset (name, cb) {
@@ -65,77 +68,81 @@ module.exports = class Kappa extends EventEmitter {
     flow.reset(cb)
   }
 
-  ready (viewNames, cb) {
-    if (typeof viewNames === 'function') return this.ready(null, viewNames)
-    if (typeof viewNames === 'string') viewNames = [viewNames]
-    if (!viewNames) viewNames = Object.keys(this.flows)
+  ready (names, cb) {
+    if (typeof names === 'function') return this.ready(null, names)
+    if (typeof names === 'string') names = [names]
+    if (!names) names = Object.keys(this.flows)
 
     // wait a tick
     process.nextTick(() => {
-      let pending = viewNames.length
-      viewNames.forEach(viewName => this._onViewIndexed(viewName, done))
+      let pending = names.length
+      for (const name of names) {
+        const flow = this.flows[name]
+        if (!flow) return cb(new Error('Unknown flow: ' + name))
+        flow.ready(done)
+      }
       function done () {
         if (--pending === 0) cb()
       }
     })
   }
-
-  _onViewIndexed (name, cb) {
-    const flow = this.flows[name]
-    if (!flow) return cb(new Error('Unknown view: ' + name))
-    flow.ready(cb)
-  }
-
-  _assignApi (name, flow) {
-    this.api[name] = {
-      name,
-      ready (cb) {
-        flow.ready(cb)
-      }
-    }
-    const context = this.opts.context || this
-    if (flow.view.api) {
-      for (let [key, value] of Object.entries(flow.view.api)) {
-        if (typeof value === 'function') value = value.bind(this.api[name], context)
-        this.api[name][key] = value
-      }
-    }
-
-    if (flow.source.api) {
-      this.api[name].source = {}
-      for (let [key, value] of Object.entries(flow.source.api)) {
-        if (typeof value === 'function') value = value.bind(this.api[name], context)
-        this.api[name].source[key] = value
-      }
-    }
-  }
 }
 
 class Flow extends EventEmitter {
-  constructor (kappa, { source, view, opts = {}, status }) {
+  constructor (name, source, view, opts) {
     super()
 
     this.opts = opts
-    this.kappa = kappa
-    this.name = opts.name
-    this.view = view
-    this.source = source
+    this.name = name
 
-    this.status = status || Status.Ready
+    this._view = view
+    this._source = source
+
+    this.context = opts.context
+    this.status = opts.status || Status.Ready
+
+    // Assign view and source apis
+    this.view = {}
+    this.source = {}
+    if (view.api) {
+      for (let [key, value] of Object.entries(view.api)) {
+        this.view[key] = bindFn(value, this, this.context)
+      }
+      delete view.api
+    }
+    if (source.api) {
+      for (let [key, value] of Object.entries(source.api)) {
+        this.source[key] = bindFn(value, this, this.context)
+      }
+      delete source.api
+    }
+
     this._opened = false
     this.open = thunky(this._open.bind(this))
   }
 
   get version () {
-    return this.view.version
+    return this._view.version || 1
   }
 
   _open (cb = noop) {
     if (this._opened) return cb()
     const self = this
     let pending = 1
-    if (this.view.open) ++pending && this.view.open(this, done)
-    if (this.source.open) ++pending && this.source.open(this, done)
+    if (this._view.open) ++pending && this._view.open(this, done)
+    if (this._source.open) ++pending && this._source.open(this, done)
+
+    if (this._source.fetchVersion) {
+      pending++
+      this._source.fetchVersion((err, version) => {
+        if (err) return done()
+        if (!version) return this._source.storeVersion(this.version, done)
+        if (version !== this.version) {
+          this.reset(() => this._source.storeVersion(this.version, done))
+        } else done()
+      })
+    }
+
     done()
 
     function done () {
@@ -146,13 +153,10 @@ class Flow extends EventEmitter {
     }
   }
 
-  ready (cb = noop) {
-    const self = this
-
+  ready (cb) {
     if (!this._opened) return this.open(() => this.ready(cb))
-
-    if (self.status === Status.Ready) process.nextTick(cb)
-    else self.once('ready', cb)
+    if (this.status === Status.Ready) process.nextTick(cb)
+    else this.once('ready', cb)
   }
 
   pause () {
@@ -169,15 +173,16 @@ class Flow extends EventEmitter {
   reset (cb = noop) {
     const self = this
     this.pause()
+    let pending = 1
     process.nextTick(() => {
-      if (this.view.clearIndex) this.view.clearIndex(reset)
-      else reset()
+      if (this._view.clearIndex) ++pending && this._view.clearIndex(done)
+      if (this._source.reset) ++pending && this._source.reset(done)
+      done()
     })
-    function reset () {
-      self.source.reset(() => {
-        self.resume()
-        cb()
-      })
+    function done () {
+      if (--pending !== 0) return
+      self.resume()
+      cb()
     }
   }
 
@@ -185,14 +190,6 @@ class Flow extends EventEmitter {
     if (!this._opened) return
     this.incomingUpdate = true
     process.nextTick(this._run.bind(this))
-  }
-
-  _onbatch (msgs, cb) {
-    if (!msgs.length) return cb(null, msgs)
-    let prepare = [this.source.transform, this.opts.transform]
-    runThrough(msgs, prepare, msgs => {
-      applyView(this.view, msgs, () => cb(null, msgs))
-    })
   }
 
   _run () {
@@ -203,24 +200,35 @@ class Flow extends EventEmitter {
 
     this.status = Status.Running
 
-    this.source.pull(onbatch)
+    this._source.pull(onbatch)
 
     function onbatch (result) {
-      if (!result) return close()
       if (self.status === Status.Paused) return close()
+      if (!result || !result.messages.length) return close(null, result)
+
       const { messages = [], finished, onindexed } = result
-      self._onbatch(messages, (err, messages) => {
-        if (err) return close(err)
-        close(null, { messages, finished, onindexed })
+
+      let steps = [
+        self._source.transform,
+        self.opts.transform,
+        self._view.transform,
+        self._view.filter
+      ]
+
+      runThrough(messages, steps, messages => {
+        if (!messages.length) return close(null, { messages, finished, onindexed })
+        self._view.map(messages, () => {
+          close(null, { messages, finished, onindexed })
+        })
       })
     }
 
     function close (err, result) {
-      if (err) self.kappa.emit('error', err, this)
+      if (err) self.emit('error', err)
       if (!result) return finish(true)
       const { messages, finished, onindexed } = result
-      if (messages.length && self.view.indexed) {
-        self.view.indexed(messages)
+      if (messages.length && self._view.indexed) {
+        self._view.indexed(messages)
       }
       if (onindexed) onindexed(() => finish(finished))
       else finish(finished)
@@ -238,12 +246,9 @@ class Flow extends EventEmitter {
   }
 }
 
-function applyView (view, msgs, cb) {
-  const prepare = [view.filter, view.transform]
-  runThrough(msgs, prepare, (msgs) => {
-    if (!msgs.length) return cb()
-    view.map(msgs, cb)
-  })
+function bindFn (value, ...binds) {
+  if (typeof value === 'function') value = value.bind(...binds)
+  return value
 }
 
 function runThrough (state, fns, final) {
@@ -257,17 +262,5 @@ function runThrough (state, fns, final) {
     })
   }
 }
-
-// function awaitAll (objs, fn, args, cb) {
-//   if (typeof args === 'function') return awaitAll(objs, fn, [], args)
-//   objs = objs.filter(obj => obj[fn])
-//   let pending = objs.length
-//   if (!pending) return cb()
-//   args.push(done)
-//   objs.forEach(obj => obj[fn](...args))
-//   function done () {
-//     if (--pending === 0) cb()
-//   }
-// }
 
 function noop () {}

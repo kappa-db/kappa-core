@@ -28,7 +28,7 @@ tape('multifeed', async t => {
     cb => feed1.append(1, cb),
     cb => feed2.append(3, cb),
     cb => {
-      kappa.api.sum.get(function (err, value) {
+      kappa.view.sum.get(function (err, value) {
         t.error(err)
         t.equals(5, value)
         cb()
