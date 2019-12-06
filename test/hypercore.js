@@ -1,7 +1,7 @@
 const tape = require('tape')
 const { Kappa } = require('..')
 const hypercore = require('hypercore')
-const Tinybox = require('tinybox')
+const mem = require('level-mem')
 const ram = require('random-access-memory')
 const hypercoreSource = require('../sources/hypercore')
 const { runAll } = require('./lib/util')
@@ -10,10 +10,10 @@ tape('hypercore source', t => {
   const kappa = new Kappa()
 
   const core1 = hypercore(ram, { valueEncoding: 'json' })
-  const state = new Tinybox(ram())
+  const statedb = mem()
 
   let res = []
-  kappa.use('view', hypercoreSource({ feed: core1, box: state }), {
+  kappa.use('view', hypercoreSource({ feed: core1, db: statedb }), {
     map (msgs, next) {
       res = res.concat(msgs.map(msg => msg.value))
       next()
@@ -40,12 +40,12 @@ tape('hypercore source', t => {
 
 tape('versions', t => {
   const feed = hypercore(ram, { valueEncoding: 'json' })
-  const sourceState = new Tinybox(ram())
-  const viewState = new Tinybox(ram())
+  const sourceState = mem()
+  const viewState = mem()
 
   function createKappa (feed, version) {
     const kappa = new Kappa()
-    const source = hypercoreSource({ feed, box: sourceState })
+    const source = hypercoreSource({ feed, db: sourceState })
     const view = makeSimpleView(viewState, version)
     const opts = {
       transform (msgs, next) {
@@ -60,7 +60,6 @@ tape('versions', t => {
   feed.append('b')
 
   let kappa = createKappa(feed, 1)
-  let kappa2
 
   runAll([
     cb => setImmediate(cb),
@@ -106,9 +105,9 @@ function makeSimpleView (db, version) {
       msgs = msgs.map(str => {
         return str + 'v' + version
       })
-      db.get('msgs', (err, node) => {
-        if (err) return next()
-        let value = node && node.value ? JSON.parse(node.value) : []
+      db.get('msgs', (err, value) => {
+        if (err && !err.notFound) return next()
+        value = value ? JSON.parse(value) : []
         value = value.concat(msgs)
         db.put('msgs', JSON.stringify(value), next)
       })
@@ -116,13 +115,13 @@ function makeSimpleView (db, version) {
     version,
     clearIndex (cb) {
       clears = clears + 1
-      db.put('msgs', JSON.stringify([], cb))
+      db.put('msgs', JSON.stringify([]), cb)
     },
     api: {
       collect (kappa, cb) {
         this.ready(() => {
-          db.get('msgs', (err, node) => {
-            cb(err, node ? JSON.parse(node.value) : [])
+          db.get('msgs', (err, value) => {
+            cb(err, value ? JSON.parse(value) : [])
           })
         })
       },

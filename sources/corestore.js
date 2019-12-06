@@ -3,7 +3,7 @@ const mergePull = require('./util/merge-pull')
 const SimpleState = require('./util/state')
 
 module.exports = function corestoreSource (opts) {
-  const state = new SimpleState(opts)
+  const state = opts.state || new SimpleState(opts)
   const store = opts.store
   const sources = []
   return {
@@ -15,7 +15,9 @@ module.exports = function corestoreSource (opts) {
       })
     },
     pull (next) {
-      mergePull(sources, next)
+      mergePull(sources, results => {
+        next(results)
+      })
     },
     reset (cb) {
       let pending = sources.length

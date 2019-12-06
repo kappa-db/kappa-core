@@ -1,60 +1,51 @@
-const Tinybox = require('tinybox')
-const ram = require('random-access-memory')
-
 module.exports = class SimpleState {
   constructor (opts = {}) {
-    this.box = opts.box || new Tinybox(ram())
-    this.prefix = opts.prefix
-  }
-
-  get _STATE () {
-    return this.prefix + '!state!'
-  }
-
-  get _VERSION () {
-    return this.prefix + '!version!'
+    this.db = opts.db
+    this._prefix = opts._prefix || ''
+    this._STATE = this._prefix + '!state!'
+    this._VERSION = this._prefix + '!version!'
   }
 
   prefix (prefix) {
     return new SimpleState({
-      box: this.box,
-      prefix: this.prefix + '/' + prefix
+      db: this.db,
+      prefix: this._prefix + '/' + prefix
     })
   }
 
   get (name, cb) {
     if (!cb) return this.get('', name)
     const key = this._STATE + name
-    getInt(this.box, key, cb)
+    getInt(this.db, key, cb)
   }
 
   put (name, seq, cb) {
     if (!cb) return this.put('', name, seq)
     const key = this._STATE + name
-    putInt(this.box, key, seq, cb)
+    putInt(this.db, key, seq, cb)
   }
 
   storeVersion (version, cb) {
-    putInt(this.box, this._VERSION, version, cb)
+    putInt(this.db, this._VERSION, version, cb)
   }
 
   fetchVersion (cb) {
-    getInt(this.box, this._VERSION, cb)
+    getInt(this.db, this._VERSION, cb)
   }
 }
 
 function getInt (db, key, cb) {
-  db.get(key, (err, node) => {
-    if (err || !node) return cb(err, 0)
-    const int = node.value.readInt32LE() || 0
-    cb(null, int)
+  db.get(key, (err, value) => {
+    if (err && err.type !== 'NotFoundError') return cb(err)
+    if (!value) return cb(null, 0)
+    value = Number(value)
+    cb(null, value)
   })
 }
 
 function putInt (db, key, int, cb) {
-  const buf = Buffer.allocUnsafe(4)
-  buf.writeInt32LE(int)
-  db.put(key, buf, cb || noop)
+  const value = String(int)
+  db.put(key, value, cb || noop)
 }
 
 function noop () {}

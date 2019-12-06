@@ -104,6 +104,7 @@ class Flow extends EventEmitter {
     // Assign view and source apis
     this.view = {}
     this.source = {}
+    this.view.ready = cb => this.ready(cb)
     if (view.api) {
       for (let [key, value] of Object.entries(view.api)) {
         this.view[key] = bindFn(value, this, this.context)

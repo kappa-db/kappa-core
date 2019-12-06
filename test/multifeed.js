@@ -1,15 +1,18 @@
 const tape = require('tape')
 const ram = require('random-access-memory')
-const { Kappa } = require('..')
 const multifeed = require('multifeed')
+const mem = require('level-mem')
+
+const { Kappa } = require('..')
 const createMultifeedSource = require('../sources/multifeed')
 const { runAll } = require('./lib/util')
 
 tape('multifeed', async t => {
   const feeds = multifeed(ram, { valueEncoding: 'json' })
   const kappa = new Kappa()
+  const db = mem()
 
-  kappa.use('sum', createMultifeedSource({ feeds }), createSumView())
+  kappa.use('sum', createMultifeedSource({ feeds, db }), createSumView())
 
   var feed1, feed2
 

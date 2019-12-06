@@ -2,6 +2,7 @@ const tape = require('tape')
 const { Kappa } = require('..')
 const Corestore = require('corestore')
 const ram = require('random-access-memory')
+const mem = require('level-mem')
 const corestoreSource = require('../sources/corestore')
 
 tape('corestore source', t => {
@@ -11,9 +12,10 @@ tape('corestore source', t => {
   store.ready(() => {
     const core1 = store.default({ valueEncoding: 'json' })
     const core2 = store.get({ valueEncoding: 'json' })
+    const db = mem()
 
     let res = []
-    kappa.use('view', corestoreSource({ store }), {
+    kappa.use('view', corestoreSource({ store, db }), {
       map (msgs, next) {
         res = res.concat(msgs.map(msg => msg.value))
         next()
