@@ -5,8 +5,8 @@ const { runAll } = require('./lib/util')
 tape('simple source', t => {
   const kappa = new Kappa()
 
-  kappa.use('view1', makeSimpleSource(), makeSimpleView())
-  kappa.use('view2', makeSimpleSource(), makeSimpleView())
+  kappa.use('view1', createSimpleSource(), createSimpleView())
+  kappa.use('view2', createSimpleSource(), createSimpleView())
   kappa.source.view1.push(1)
   kappa.source.view1.push(2)
   kappa.source.view2.push(3)
@@ -29,7 +29,7 @@ tape('simple source', t => {
 
 tape('reset', t => {
   const kappa = new Kappa()
-  const foo = kappa.use('foo', makeSimpleSource(), makeSimpleView())
+  const foo = kappa.use('foo', createSimpleSource(), createSimpleView())
   foo.source.push(1)
   foo.source.push(2)
   foo.source.push(3)
@@ -53,7 +53,7 @@ tape('reset', t => {
   ])
 })
 
-function makeSimpleView () {
+function createSimpleView () {
   let res = []
   let clears = 0
   const view = {
@@ -78,7 +78,7 @@ function makeSimpleView () {
   return view
 }
 
-function makeSimpleSource (opts = {}) {
+function createSimpleSource (opts = {}) {
   const buf = []
   const maxBatch = opts.maxBatch || 10
   let flow = null

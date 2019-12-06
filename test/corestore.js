@@ -14,18 +14,7 @@ tape('corestore source', t => {
     const core2 = store.get({ valueEncoding: 'json' })
     const db = mem()
 
-    let res = []
-    kappa.use('view', corestoreSource({ store, db }), {
-      map (msgs, next) {
-        res = res.concat(msgs.map(msg => msg.value))
-        next()
-      },
-      api: {
-        collect (kappa, cb) {
-          this.ready(() => cb(null, res))
-        }
-      }
-    })
+    kappa.use('view', corestoreSource({ store, db }), createSimpleView())
 
     core1.append(1)
     core2.append(2)
@@ -40,3 +29,18 @@ tape('corestore source', t => {
     })
   })
 })
+
+function createSimpleView () {
+  let res = []
+  return {
+    map (msgs, next) {
+      res = res.concat(msgs.map(msg => msg.value))
+      next()
+    },
+    api: {
+      collect (kappa, cb) {
+        this.ready(() => cb(null, res))
+      }
+    }
+  }
+}
