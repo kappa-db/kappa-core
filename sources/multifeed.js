@@ -22,7 +22,12 @@ module.exports = function multifeedSource (opts) {
       mergeReset(sources, next)
     },
     fetchVersion: state.fetchVersion,
-    storeVersion: state.storeVersion
+    storeVersion: state.storeVersion,
+    api: {
+      feed (key) {
+        return feeds.feed(key)
+      }
+    }
   }
 
   function onfeed (flow, feed, cb) {

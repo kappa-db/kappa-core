@@ -21,7 +21,12 @@ module.exports = function corestoreSource (opts) {
       mergeReset(sources, next)
     },
     fetchVersion: state.fetchVersion,
-    storeVersion: state.storeVersion
+    storeVersion: state.storeVersion,
+    api: {
+      feed (key) {
+        return store.get({ key })
+      }
+    }
   }
 
   function _onfeed (flow, feed, cb) {
