@@ -2,19 +2,17 @@
 
 ## **kappa-core WIP rewrite** ##
 
-Make the base Kappa core dependencyless.
+kappa-core is a database abstraction for append-only logs and add-only sets. A kappa-core is a container for pairs of sources and views, called *flows*. In each flow, data flows from a source into a view. Sources have a pull function that fetches new messages since the last pull. Views have a map function which is called for each batch of messages from the source.
 
-See `./kappa.js`. `Kappa` just deals with *sources* and *views*. Sources pull values based on their last state, views process values in a map function.
+kappa-core itself is dependencyless, but this module also contains stateful source handlers for [hypercores](https://github.com/mafintosh/hypercore), [multifeed](https://github.com/kappa-core/multifeed), and [corestore](https://github.com/andrewosh/corestore).
 
 ## API
 
 `const { Kappa } = require('kappa-core')`
 
-#### `const kappa = new Kappa(opts)`
+#### `const kappa = new Kappa()`
 
-Create a new kappa core. opts are:
-* `autoconnect: boolean`: connect all sources to all views (default: true)
-* `autostart: boolean`: start indexing immediately (default: true)
+Create a new kappa core.
 
 #### `kappa.use(name, source, view)`
 
@@ -35,7 +33,9 @@ Register a flow.
 
    There are several source handlers included in kappa-core (TODO: document sources). See the tests and sources directories.
 
-  * `reset: function (cb)`: Reset internal state (next pull should start at the beginning).
+   A simple state handler that perists state in a leveldb (or in memory) is included and used by the bundled source handler. It's available for use by custom sources on `Kappa.SimpleState`. If the bundled source handlers get a `db` option passed with levelup instance, the source state will be persisted.
+
+  * `reset: function (cb)`: Reset internal state (next pull should start at the beginning). This handler is called by the kappa-core if the view's `version` property increases and thus wants to restart indexing.
   * `storeVersion: function (version, cb)`: Store the flow version somewhere
   * `fetchVersion: function (cb)`: Fetch the version stored with storeVersion
 * `view` object with properties 
@@ -61,6 +61,26 @@ Pause processing of all flows
 #### `kappa.resume()`
 
 Resume processing of all flows
+
+## Sources
+
+* hypercore
+
+  `const createHypercoreSource = require('kappa-core/sources/hypercore')`
+  `createHypercoreSource({ feed, db })`
+  where `feed` is a hypercore instance and `db` is a levelup instance (for persisting state)
+
+* multifeed 
+
+  `const createMultifeedSource = require('kappa-core/sources/multifeed')`
+  `createHypercoreSource({ feeds, db })`
+  where `feeds` is a multifeed instance and `db` is a levelup instance (for persisting state)
+
+* corestore
+
+  `const createCorestoreSource = require('kappa-core/sources/corestore')`
+  `createHypercoreSource({ store, db })`
+  where `store` is a corestore instance and `db` is a levelup instance (for persisting state)
 
 ---
 
