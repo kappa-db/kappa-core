@@ -23,7 +23,7 @@ module.exports = function corestoreSource (opts) {
     fetchVersion: state.fetchVersion,
     storeVersion: state.storeVersion,
     api: {
-      feed (key) {
+      feed (kappa, key) {
         return store.get({ key })
       }
     }
