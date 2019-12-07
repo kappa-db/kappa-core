@@ -1,5 +1,5 @@
 const hypercoreSource = require('./hypercore')
-const mergePull = require('./util/merge-pull')
+const { mergePull, mergeReset } = require('./util/merge')
 const SimpleState = require('./util/state')
 
 module.exports = function multifeedSource (opts) {
@@ -18,15 +18,11 @@ module.exports = function multifeedSource (opts) {
     pull (next) {
       mergePull(sources, next)
     },
-    reset (cb) {
-      let pending = sources.length
-      sources.forEach(source => source.reset(done))
-      function done () {
-        if (--pending === 0) cb()
-      }
+    reset (next) {
+      mergeReset(sources, next)
     },
-    fetchVersion (cb) { state.fetchVersion(cb) },
-    storeVersion (version, cb) { state.storeVersion(version, cb) }
+    fetchVersion: state.fetchVersion,
+    storeVersion: state.storeVersion
   }
 
   function onfeed (flow, feed, cb) {

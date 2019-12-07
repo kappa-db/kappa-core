@@ -1,4 +1,4 @@
-module.exports = function mergePull (sources, next) {
+exports.mergePull = function (sources, next) {
   if (!sources.length) return next()
   let results = []
   let pending = sources.length
@@ -29,5 +29,13 @@ module.exports = function mergePull (sources, next) {
     function done () {
       if (--pending === 0) cb()
     }
+  }
+}
+
+exports.mergeReset = function (sources, cb) {
+  let pending = sources.length
+  sources.forEach(source => source.reset(done))
+  function done () {
+    if (--pending === 0) cb()
   }
 }

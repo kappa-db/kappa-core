@@ -1,9 +1,14 @@
 module.exports = class SimpleState {
   constructor (opts = {}) {
-    this.db = opts.db
-    this._prefix = opts._prefix || ''
+    this.db = opts.db || new FakeDB()
+    this._prefix = opts.prefix || ''
     this._STATE = this._prefix + '!state!'
     this._VERSION = this._prefix + '!version!'
+    // Bind public methods so that they can be passed on directly.
+    this.get = this.get.bind(this)
+    this.put = this.put.bind(this)
+    this.storeVersion = this.storeVersion.bind(this)
+    this.fetchVersion = this.fetchVersion.bind(this)
   }
 
   prefix (prefix) {
@@ -50,16 +55,24 @@ function putInt (db, key, int, cb) {
 
 function noop () {}
 
-// module.exports = class StatefulSource {
-//   constructor (opts) {
-//     this.state = new SimpleState(opts)
-//   }
+class FakeDB {
+  constructor () {
+    this.state = {}
+  }
 
-//   fetchVersion (cb) {
-//     this.state.getVersion(cb)
-//   }
+  put (key, value, cb) {
+    this.state[key] = value
+    cb()
+  }
 
-//   storeVersion (version, cb) {
-//     this.state.setVersion(version, cb)
-//   }
-// }
+  get (key, cb) {
+    if (typeof this.state[key] === 'undefined') {
+      const err = new Error('Key not found')
+      err.type = 'NotFoundError'
+      err.notFound = true
+      cb(err)
+    } else {
+      cb(null, this.state[key])
+    }
+  }
+}
