@@ -22,18 +22,18 @@ Register a flow.
 * `source` object with properties:
   * `open: function (flow, next)`: (optional) Handler to call on open
   * `pull: function (next)`: Pull new messages from the view. Should call `next` with either nothing or an object that looks like this:
-   ```javascript
-   {
-      messages: [], // array of messages
-      finished: true, // if set to false, signal that more messages are pending
-      onindexed: function (cb) {} // will be called when the view finished indexing
-   }
-   ```
-   The source has to track its state, so that subsequent calls to `pull()` do not return the same messages. Use the `onindexed` callback to update state.
+    ```javascript
+    {
+        messages: [], // array of messages
+        finished: true, // if set to false, signal that more messages are pending
+        onindexed: function (cb) {} // will be called when the view finished indexing
+    }
+    ```
+    The source has to track its state, so that subsequent calls to `pull()` do not return the same messages. Use the `onindexed` callback to update state.
 
-   There are several source handlers included in kappa-core (TODO: document sources). See the tests and sources directories.
+    There are several source handlers included in kappa-core (TODO: document sources). See the tests and sources directories.
 
-   A simple state handler that perists state in a leveldb (or in memory) is included and used by the bundled source handler. It's available for use by custom sources on `Kappa.SimpleState`. If the bundled source handlers get a `db` option passed with levelup instance, the source state will be persisted.
+    A simple state handler that perists state in a leveldb (or in memory) is included and used by the bundled source handler. It's available for use by custom sources on `Kappa.SimpleState`. If the bundled source handlers get a `db` option passed with levelup instance, the source state will be persisted.
 
   * `reset: function (cb)`: Reset internal state (next pull should start at the beginning). This handler is called by the kappa-core if the view's `version` property increases and thus wants to restart indexing.
   * `storeVersion: function (version, cb)`: Store the flow version somewhere
