@@ -14,17 +14,14 @@ module.exports = class Kappa extends EventEmitter {
    */
   constructor (opts = {}) {
     super()
-    this.opts = {
-      autostart: true,
-      ...opts
-    }
     this.flows = {}
-    this.open = thunky(this._open.bind(this))
-
     // APIs
     this.view = {}
     this.source = {}
   }
+
+  // This is here for backwards compatibility.
+  get api () { return this.view }
 
   use (name, source, view, opts = {}) {
     opts.status = opts.status || this.status
@@ -35,20 +32,11 @@ module.exports = class Kappa extends EventEmitter {
     this.source[name] = flow.source
     flow.on('error', err => this.emit('error', err, flow))
 
-    if (this.opts.autostart) this.flows[name].open()
-
     this.emit('flow', name)
 
-    return flow
-  }
+    if (this.status !== Status.Paused) flow.open()
 
-  _open (cb) {
-    let pending = Object.keys(this.flows.length)
-    if (!pending) return cb()
-    Object.values(this.flows).forEach(flow => flow.open(done))
-    function done () {
-      if (--pending === 0) cb()
-    }
+    return flow
   }
 
   pause () {
