@@ -6,8 +6,6 @@ Make the base Kappa core dependencyless.
 
 See `./kappa.js`. `Kappa` just deals with *sources* and *views*. Sources pull values based on their last state, views process values in a map function.
 
-![kappa flow](kappa-graph.svg)
-
 ## API
 
 `const { Kappa } = require('kappa-core')`
