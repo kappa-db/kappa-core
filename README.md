@@ -64,23 +64,36 @@ Resume processing of all flows
 
 ## Sources
 
-* hypercore
+#### [hypercore](https://github.com/mafintosh/hypercore)
 
-  `const createHypercoreSource = require('kappa-core/sources/hypercore')`
-  `createHypercoreSource({ feed, db })`
-  where `feed` is a hypercore instance and `db` is a levelup instance (for persisting state)
+```javascript
+const createHypercoreSource = require('kappa-core/sources/hypercore')
+createHypercoreSource({ feed, db })
+```
 
-* multifeed 
+where `feed` is a hypercore instance and `db` is a levelup instance (for persisting state)
 
-  `const createMultifeedSource = require('kappa-core/sources/multifeed')`
-  `createHypercoreSource({ feeds, db })`
-  where `feeds` is a multifeed instance and `db` is a levelup instance (for persisting state)
+#### [multifeed](https://github.com/kappa-core/multifeed)
 
-* corestore
+```javascript
+const createMultifeedSource = require('kappa-core/sources/multifeed')
+createHypercoreSource({ feeds, db })
+```
 
-  `const createCorestoreSource = require('kappa-core/sources/corestore')`
-  `createHypercoreSource({ store, db })`
-  where `store` is a corestore instance and `db` is a levelup instance (for persisting state)
+where `feeds` is a multifeed instance and `db` is a levelup instance (for persisting state)
+
+This source exposes an API method `feed (key)` that return a feed by key from the underlying multifeed.
+
+#### [corestore](https://github.com/andrewosh/corestore)
+
+```javascript
+const createCorestoreSource = require('kappa-core/sources/corestore')
+createHypercoreSource({ store, db })
+```
+
+where `store` is a corestore instance and `db` is a levelup instance (for persisting state)
+
+This source exposes an API method `feed (key)` that return a feed by key from the underlying corestore.
 
 ---
 
