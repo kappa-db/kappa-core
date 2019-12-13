@@ -117,25 +117,26 @@ class Flow extends EventEmitter {
   _open (cb = noop) {
     if (this._opened) return cb()
     const self = this
-    let pending = 1
-    if (this._view.open) ++pending && this._view.open(this, done)
-    if (this._source.open) ++pending && this._source.open(this, done)
 
-    if (this._source.fetchVersion) {
-      pending++
-      this._source.fetchVersion((err, version) => {
-        if (err) return done()
-        if (!version) return this._source.storeVersion(this.version, done)
-        if (version !== this.version) {
-          this.reset(() => this._source.storeVersion(this.version, done))
-        } else done()
-      })
+    let pending = 1
+    if (this._view.open) ++pending && this._view.open(this, onopen)
+    if (this._source.open) ++pending && this._source.open(this, onopen)
+    onopen()
+
+    function onopen () {
+      if (--pending !== 0) return
+      if (self._source.fetchVersion) {
+        self._source.fetchVersion((err, version) => {
+          if (err) return ondone()
+          if (!version) return self._source.storeVersion(self.version, ondone)
+          if (version !== self.version) {
+            self.reset(() => self._source.storeVersion(self.version, ondone))
+          } else ondone()
+        })
+      } else ondone()
     }
 
-    done()
-
-    function done () {
-      if (--pending !== 0) return
+    function ondone () {
       self._opened = true
       self._run()
       cb()
