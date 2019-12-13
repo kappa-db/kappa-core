@@ -106,6 +106,13 @@ class Flow extends EventEmitter {
       delete source.api
     }
 
+    // Create the list of funtions through which messages run between pull and map.
+    this._transform = new Pipeline()
+    if (this._source.transform) this._transform.push(this._source.transform.bind(this._source))
+    if (this.opts.transform) this._transform.push(this.opts.transform)
+    if (this._view.transform) this._transform.push(this._view.transform.bind(this._view))
+    if (this._view.filter) this._transform.push(this._view.filter.bind(this._view))
+
     this._opened = false
     this.open = thunky(this._open.bind(this))
   }
@@ -198,14 +205,8 @@ class Flow extends EventEmitter {
 
       const { messages = [], finished, onindexed } = result
 
-      let steps = [
-        self._source.transform,
-        self.opts.transform,
-        self._view.transform,
-        self._view.filter
-      ]
-
-      runThrough(messages, steps, messages => {
+      // TODO: Handle timeout / error?
+      self._transform.run(messages, messages => {
         if (!messages.length) return close(null, { messages, finished, onindexed })
         self._view.map(messages, () => {
           close(null, { messages, finished, onindexed })
@@ -236,9 +237,25 @@ class Flow extends EventEmitter {
   }
 }
 
+// Utils
+
 function bindFn (value, ...binds) {
   if (typeof value === 'function') value = value.bind(...binds)
   return value
+}
+
+class Pipeline {
+  constructor () {
+    this.fns = []
+  }
+
+  push (fn) {
+    this.fns.push(fn)
+  }
+
+  run (messages, final) {
+    runThrough(messages, this.fns, final)
+  }
 }
 
 function runThrough (state, fns, final) {
