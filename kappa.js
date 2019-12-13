@@ -74,6 +74,17 @@ module.exports = class Kappa extends EventEmitter {
       }
     })
   }
+
+  close (cb) {
+    let flows = Object.values(this.flows)
+    let pending = flows.length
+    if (!pending) done()
+    // TODO: Propagate errors?
+    flows.forEach(flow => flow.close(done))
+    function done () {
+      if (--pending === 0) cb()
+    }
+  }
 }
 
 class Flow extends EventEmitter {
@@ -147,6 +158,26 @@ class Flow extends EventEmitter {
       self._opened = true
       self._run()
       cb()
+    }
+  }
+
+  close (cb) {
+    const self = this
+    this.pause()
+    this._closing = true
+    if (this.status === Status.Running) this.once('ready', close)
+    else close()
+    function close () {
+      let pending = 1
+      if (self._source.close) ++pending && self._source.close(cb)
+      if (self._view.close) ++pending && self._view.close(cb)
+      done()
+      function done () {
+        if (--pending !== 0) return
+        self._closing = false
+        self._opened = false
+        cb()
+      }
     }
   }
 
@@ -227,6 +258,7 @@ class Flow extends EventEmitter {
 
     function finish (finished) {
       self.status = Status.Ready
+      if (self._closing) return self.emit('ready')
       if (self.incomingUpdate || !finished) {
         self.incomingUpdate = false
         process.nextTick(self._run.bind(self))

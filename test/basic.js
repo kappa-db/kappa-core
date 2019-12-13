@@ -53,6 +53,41 @@ tape('reset', t => {
   ])
 })
 
+tape('open close', t => {
+  t.plan(5)
+  const kappa = new Kappa()
+  let i = 0
+  kappa.use('foo', {
+    pull (next) {
+      t.pass('pull')
+      return next({
+        messages: [++i, ++i],
+        finished: false,
+        onindexed (cb) {
+          t.pass('onindexed')
+          cb()
+        }
+      })
+    },
+    open (flow, cb) {
+      t.pass('open')
+      cb()
+    },
+    close (cb) {
+      t.pass('close')
+      cb()
+    }
+  }, createSimpleView())
+
+  runAll([
+    cb => kappa.close(cb),
+    cb => {
+      t.pass('closed!')
+      cb()
+    }
+  ])
+})
+
 function createSimpleView () {
   let res = []
   let clears = 0
