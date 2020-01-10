@@ -61,18 +61,15 @@ module.exports = class Kappa extends EventEmitter {
     if (typeof names === 'string') names = [names]
     if (!names) names = Object.keys(this.flows)
 
-    // wait a tick
-    process.nextTick(() => {
-      let pending = names.length
-      for (const name of names) {
-        const flow = this.flows[name]
-        if (!flow) return cb(new Error('Unknown flow: ' + name))
-        flow.ready(done)
-      }
-      function done () {
-        if (--pending === 0) cb()
-      }
-    })
+    let pending = names.length
+    for (const name of names) {
+      const flow = this.flows[name]
+      if (!flow) return cb(new Error('Unknown flow: ' + name))
+      flow.ready(done)
+    }
+    function done () {
+      if (--pending === 0) cb()
+    }
   }
 
   close (cb) {
@@ -185,12 +182,16 @@ class Flow extends EventEmitter {
     const self = this
     if (!this._opened) return this.open(() => this.ready(cb))
 
-    if (this.source.ready) this.source.ready(onsourceready)
-    else onsourceready()
+    setImmediate(() => {
+      if (this.source.ready) this.source.ready(onsourceready)
+      else onsourceready()
+    })
 
     function onsourceready () {
-      if (self.status === Status.Ready) process.nextTick(cb)
-      else self.once('ready', cb)
+      process.nextTick(() => {
+        if (self.status === Status.Ready) process.nextTick(cb)
+        else self.once('ready', cb)
+      })
     }
   }
 
