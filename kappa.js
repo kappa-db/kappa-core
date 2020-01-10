@@ -181,10 +181,17 @@ class Flow extends EventEmitter {
     }
   }
 
-  ready (cb) {
+  ready (cb, waitForSource) {
+    const self = this
     if (!this._opened) return this.open(() => this.ready(cb))
-    if (this.status === Status.Ready) process.nextTick(cb)
-    else this.once('ready', cb)
+
+    if (this.source.ready) this.source.ready(onsourceready)
+    else onsourceready()
+
+    function onsourceready () {
+      if (self.status === Status.Ready) process.nextTick(cb)
+      else self.once('ready', cb)
+    }
   }
 
   pause () {
