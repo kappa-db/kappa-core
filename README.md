@@ -182,30 +182,31 @@ var store = memdb()
 
 // View definition
 var sumview = view(store, function (db) {
-
-  // Called with a batch of log entries to be processed by the view.
-  // No further entries are processed by this view until 'next()' is called.
-  map: function (entries, next) {
-    db.get('sum', function (err, value) {
-      var sum
-      if (err && err.notFound) sum = 0
-      else if (err) return next(err)
-      else sum = value
-    })
-    entries.forEach(function (entry) {
-      if (typeof entry.value === 'number') sum += entry.value
-    })
-    db.put('sum', sum, next)
-  }
-
-  // Whatever is defined in the "api" object is publicly accessible
-  api: {
-    get: function (core, cb) {
-      this.ready(function () {  // wait for all views to catch up
-        cb(null, sum)
+  return {
+    // Called with a batch of log entries to be processed by the view.
+    // No further entries are processed by this view until 'next()' is called.
+    map: function (entries, next) {
+      db.get('sum', function (err, value) {
+        var sum
+        if (err && err.notFound) sum = 0
+        else if (err) return next(err)
+        else sum = value
       })
+      entries.forEach(function (entry) {
+        if (typeof entry.value === 'number') sum += entry.value
+      })
+      db.put('sum', sum, next)
+    },
+
+    // Whatever is defined in the "api" object is publicly accessible
+    api: {
+      get: function (core, cb) {
+        this.ready(function () {  // wait for all views to catch up
+          cb(null, sum)
+        })
+      }
     }
-  },
+  }
 })
 
 // the api will be mounted at core.api.sum
