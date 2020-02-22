@@ -162,7 +162,7 @@ class Flow extends EventEmitter {
     const self = this
     this.pause()
     this._closing = true
-    if (this.status === Status.Running) this.once('ready', close)
+    if (this.status === Status.Running) return this.once('ready', close)
     else close()
     function close () {
       let pending = 1
@@ -202,8 +202,8 @@ class Flow extends EventEmitter {
   resume () {
     if (this.status !== Status.Paused) return
     this.status = Status.Ready
-    if (!this._opened) this.open()
-    else this._run()
+    if (!this._opened) return this.open()
+    this._run()
   }
 
   reset (cb = noop) {
@@ -230,7 +230,7 @@ class Flow extends EventEmitter {
 
   _run () {
     const self = this
-    if (!this._opened) throw new Error('Flow is not opened.')
+    if (!this._opened) return
     if (this.status === Status.Running) return
     if (this.status === Status.Paused) return
 
