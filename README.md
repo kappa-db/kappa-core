@@ -244,7 +244,7 @@ kappa-core is built atop ideas from a huge body of others' work:
 - [hyperdb](https://github.com/mafintosh/hyperdb)
 - [forkdb](https://github.com/substack/forkdb)
 - [hyperlog](https://github.com/mafintosh/hyperlog)
-- a harmonious meshing of ideas with @substack in the south of spain
+- a harmonious meshing of ideas with @[substack](https://github.com/substack) in the south of spain
 
 ## Further Reading
 
