@@ -184,6 +184,7 @@ class Flow extends EventEmitter {
 
     setImmediate(() => {
       if (this.source.ready) this.source.ready(onsourceready)
+      else if (this._source.ready) this._source.ready(onsourceready)
       else onsourceready()
     })
 
