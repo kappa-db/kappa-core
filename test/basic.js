@@ -34,3 +34,39 @@ test('simple view', function (t) {
     })
   })
 })
+
+test('REGRESSION: views still work while indexing is paused', function (t) {
+  t.plan(1)
+
+  var core = kappa(ram, { valueEncoding: 'json' })
+
+  var sum = 0
+
+  var sumview = {
+    api: {
+      get: function (core, cb) {
+        this.ready(function () {
+          cb(null, sum)
+        })
+      }
+    },
+    map: function (msgs, next) {
+      msgs.forEach(function (msg) {
+        if (typeof msg.value === 'number') sum += msg.value
+      })
+      next()
+    }
+  }
+
+  core.use('sum', sumview)
+
+  core.writer('default', function (err, feed) {
+    feed.append(1, function (err) {
+      core.pause(function () {
+        core.api.sum.get(function (err, value) {
+          t.equals(1, value)
+        })
+      })
+    })
+  })
+})
