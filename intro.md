@@ -159,4 +159,4 @@ Thanks for reading! You can also try the [kappa-core
 workshop](https://github.com/kappa-db/workshop) to use kappa-core yourself, or
 get support and/or chat about development on
 
-- IRC: #kappa-db on Freenode
+- IRC: #kappa-core on Freenode
