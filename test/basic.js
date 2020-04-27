@@ -62,7 +62,7 @@ tape('open close', t => {
       t.pass('pull')
       return next({
         messages: [++i, ++i],
-        finished: false,
+        finished: true,
         onindexed (cb) {
           t.pass('onindexed')
           cb()
@@ -80,6 +80,7 @@ tape('open close', t => {
   }, createSimpleView())
 
   runAll([
+    cb => kappa.ready(cb),
     cb => kappa.close(cb),
     cb => {
       t.pass('closed!')
