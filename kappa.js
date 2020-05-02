@@ -96,6 +96,8 @@ class Flow extends EventEmitter {
     this.opts = opts
     this.name = name
 
+    if (!view.version) view.version = 1
+
     this._view = view
     this._source = source
 
@@ -110,13 +112,11 @@ class Flow extends EventEmitter {
       for (let [key, value] of Object.entries(view.api)) {
         this.view[key] = bindFn(value, this, this.context)
       }
-      delete view.api
     }
     if (source.api) {
       for (let [key, value] of Object.entries(source.api)) {
         this.source[key] = bindFn(value, this, this.context)
       }
-      delete source.api
     }
 
     // Create the list of funtions through which messages run between pull and map.
@@ -130,7 +130,7 @@ class Flow extends EventEmitter {
   }
 
   get version () {
-    return this._view.version || 1
+    return this._view.version
   }
 
   _open (cb = noop) {
