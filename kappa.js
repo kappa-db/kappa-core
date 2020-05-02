@@ -121,11 +121,8 @@ class Flow extends EventEmitter {
 
     // Create the list of funtions through which messages run between pull and map.
     this._transform = new Pipeline()
-    if (this._source.filter) this._transform.push(this._source.filter.bind(this._source))
     if (this._source.transform) this._transform.push(this._source.transform.bind(this._source))
-    if (this.opts.filter) this._transform.push(this.opts.filter)
     if (this.opts.transform) this._transform.push(this.opts.transform)
-    if (this._view.filter) this._transform.push(this._view.filter.bind(this._view))
     if (this._view.transform) this._transform.push(this._view.transform.bind(this._view))
 
     this._opened = false
