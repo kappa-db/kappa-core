@@ -30,7 +30,7 @@ module.exports = function multifeedSource (opts) {
     }
   }
 
-  function onfeed (flow, feed, cb) {
+  function onfeed (flow, feed) {
     const source = hypercoreSource({
       feed,
       state
@@ -38,7 +38,6 @@ module.exports = function multifeedSource (opts) {
     sources.push(source)
     source.open(flow, () => {
       flow.update()
-      if (cb) cb()
     })
   }
 }

@@ -18,6 +18,9 @@ module.exports = class SimpleState {
     })
   }
 
+  reset (cb) {
+  }
+
   get (name, cb) {
     if (!cb) return this.get('', name)
     const key = this._STATE + name
@@ -62,7 +65,7 @@ class FakeDB {
 
   put (key, value, cb) {
     this.state[key] = value
-    cb()
+    process.nextTick(cb)
   }
 
   get (key, cb) {
@@ -70,9 +73,10 @@ class FakeDB {
       const err = new Error('Key not found')
       err.type = 'NotFoundError'
       err.notFound = true
+      process.nextTick(cb, err)
       cb(err)
     } else {
-      cb(null, this.state[key])
+      process.nextTick(cb, null, this.state[key])
     }
   }
 }

@@ -64,7 +64,6 @@ module.exports = class Kappa extends EventEmitter {
     if (typeof names === 'string') names = [names]
     if (!names) names = Object.keys(this.flows)
     if (!names.length) return cb()
-
     cb = once(cb)
 
     let pending = names.length
@@ -186,8 +185,8 @@ class Flow extends EventEmitter {
     else close()
     function close () {
       let pending = 1
-      if (self._source.close) ++pending && self._source.close(cb)
-      if (self._view.close) ++pending && self._view.close(cb)
+      if (self._source.close) ++pending && self._source.close(done)
+      if (self._view.close) ++pending && self._view.close(done)
       done()
       function done () {
         if (--pending !== 0) return
@@ -267,9 +266,9 @@ class Flow extends EventEmitter {
 
       const { messages = [], finished, onindexed } = result
 
-      // TODO: Handle timeout / error?
       self._transform.run(messages, messages => {
         if (!messages.length) return close(null, { messages, finished, onindexed })
+        // TODO: Handle timeout?
         self._view.map(messages, err => {
           close(err, { messages, finished, onindexed })
         })

@@ -1,5 +1,5 @@
 exports.mergePull = function (sources, next) {
-  if (!sources.length) return next()
+  if (!sources.length) return process.nextTick(next)
   let results = []
   let pending = sources.length
   sources.forEach(source => source.pull(onresult))
@@ -12,7 +12,7 @@ exports.mergePull = function (sources, next) {
     let messages = []
     let finished = true
     for (let result of results) {
-      if (result.messages) messages = messages.concat(result.messages)
+      if (result.messages) Array.prototype.push.apply(messages, result.messages)
       if (!result.finished) finished = false
     }
     next({

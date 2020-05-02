@@ -61,11 +61,3 @@ function createSumView () {
   }
   return sumview
 }
-
-// function replicate (a, b, opts, cb) {
-//   if (typeof opts === 'function') return replicate(a, b, null, cb)
-//   if (!opts) opts = { live: true }
-//   const stream = a.replicate(opts)
-//   stream.pipe(b.replicate(opts)).pipe(stream)
-//   setImmediate(cb)
-// }
