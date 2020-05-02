@@ -30,22 +30,25 @@ Register a flow.
         onindexed: function (cb) {} // will be called when the view finished indexing
     }
     ```
-    The source has to track its state, so that subsequent calls to `pull()` do not return the same messages. Use the `onindexed` callback to update state.
-
-    There are several source handlers included in kappa-core (TODO: document sources). See the tests and sources directories.
-
-    A simple state handler that perists state in a leveldb (or in memory) is included and used by the bundled source handler. It's available for use by custom sources on `Kappa.SimpleState`. If the bundled source handlers get a `db` option passed with levelup instance, the source state will be persisted.
-
   * `reset: function (cb)`: Reset internal state (next pull should start at the beginning). This handler is called by the kappa-core if the view's `version` property increases and thus wants to restart indexing.
   * `storeVersion: function (version, cb)`: Store the flow version somewhere
   * `fetchVersion: function (cb)`: Fetch the version stored with storeVersion
-* `view` object with properties 
-  * `map: function (msgs, next)` (required) 
-  * `open: function (flow, next)` (optional)
-  * `filter: function (msgs, next)` (optional)
-  * `version: int`
 
-Both `source` and `view` can have an `api` property with an object of function. The functions are exposed on `kappa.view[name]` / `kappa.source[name]`. Their `this` object refers to the flow, and their first parameter is the `kappa`. Other parameters are passed through.
+* `view` object with properties 
+  * `map: function (messages, next)` (required) Called for each batch of messages. Call `next` when done indexing this batch of messages.
+  * `open: function (flow, next)` (optional) Callback to call on open. `flow` is the current flow, it notably has a `name` property that uniquely identifies this flow within the current Kappa core. Has to call `next` when done with opening.
+  * `clearIndex: function (cb)`: Delete all indexed data. This is called by the Kappa core when a complete reindex is necessary. The `map` function will receive messages from the start on afterwards.
+  * `version: int` The view version. If the version is increased, the Kappa core will clear and restart the indexing for this view after the next reopening of the core.
+
+Both `source` and `view` can have an `api` property with an object of function. The functions are exposed on `kappa.view[name]` / `kappa.source[name]`. Their `this` object refers to the flow they are part of, and their first parameter is the `kappa`. Other parameters are passed through.
+
+The source has to track its state, so that subsequent calls to `pull()` do not return the same messages. Use the `onindexed` callback to update state. How to track its state is up to the source implementation.
+
+A simple state handler that perists state in a leveldb (or in memory) is included and used by the bundled source handler. It's available for use by custom sources on `Kappa.SimpleState`. If the bundled source handlers get a `db` option passed with levelup instance, the source state will be persisted.
+
+There are several source handlers included in kappa-core (TODO: document sources). See the tests and sources directories.
+
+
 
 #### `kappa.reset(name, cb)`
 
@@ -53,7 +56,7 @@ Reset a specific flow, to restart indexing. This is equal to reopening the kappa
 
 #### `kappa.ready(names, cb)`
 
-Call `cb` exactly once, after all flows with a name in the `names` array have finished processing. If `names` is empty, all flows will be awaited. If all the flows are already ready, `cb` is called immediately.
+Call `cb` exactly once, after all flows with a name in the `names` array have finished processing. If `names` is empty, all flows will be awaited. This `names` is a string, the flow of this name will be awaited. If the requested flows are already ready, `cb` is called immediately.
 
 #### `kappa.pause()`
 

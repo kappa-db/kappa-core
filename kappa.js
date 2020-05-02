@@ -80,7 +80,7 @@ module.exports = class Kappa extends EventEmitter {
     cb = once(cb)
     let flows = Object.values(this.flows)
     let pending = flows.length
-    if (!pending) done()
+    if (!pending) return done()
     flows.forEach(flow => flow.close(done))
     function done (err) {
       if (err) return cb(err)
