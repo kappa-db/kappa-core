@@ -24,10 +24,6 @@ class HypercoreSource {
     this.state.storeVersion(version, cb)
   }
 
-  reset (cb) {
-    this.state.set(0, cb)
-  }
-
   get name () {
     return this.feed.key.toString('hex')
   }

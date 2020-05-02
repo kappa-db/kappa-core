@@ -20,9 +20,9 @@ Register a flow.
 
 * `name` (string) the name of the flow, has to be unique per kappa core
 * `source` object with properties:
-  * `open: function (flow, cb)`: (optional) Handler to call on open.
-  * `close: function (cb)`: (optional) Handler to call on close.
-  * `pull: function (next)`: Handler to pull new messages from the view. Should call `next` with either nothing or an object that looks like this:
+  * `open: function (flow, cb)` *(optional)* Handler to call on open. `flow` is the current flow object (see below for docs). Call `cb` when done with opening.
+  * `close: function (cb)`: *(optional)* Handler to call on close. Has to call `cb`.
+  * `pull: function (next)`: **(required)** Handler to pull new messages from the view. Should call `next` with either nothing or an object that looks like this:
     ```javascript
     {
         messages: [], // array of messages
@@ -30,22 +30,21 @@ Register a flow.
         onindexed: function (cb) {} // will be called when the view finished indexing
     }
     ```
-  * `reset: function (cb)`: Handler to reset internal state. This is called when a full reindex is necessary. This means that the next pull ought to start at the beginning.
-  * `storeVersion: function (version, cb)`: Handler to store the flow version number.
-  * `fetchVersion: function (cb)`: Handler to fetch the version stored with `storeVersion`.
+  * `reset: function (cb)`: **(required)** Handler to reset internal state. This is called when a full reindex is necessary. This means that the next pull ought to start at the beginning.
+  * `storeVersion: function (version, cb)`: **(required)** Handler to store the flow version number.
+  * `fetchVersion: function (cb)`: **(required)** Handler to fetch the version stored with `storeVersion`.
+  * See the `SimpleState` docs below how to easily implement the `reset`, `storeVersion` and `fetchVersion` methods.
 
 * `view` object with properties:
-  * `map: function (messages, next)` (required) Handler for each batch of messages. Call `next` when done indexing this batch of messages.
-  * `open: function (flow, cb)` (optional) Handler to call on open. `flow` is the current flow, it notably has a `name` property that uniquely identifies this flow within the current Kappa core. Call `next` when done with opening.
-  * `close: function (cb)`: (optional) Handler to call on close.
-  * `reset: function (cb)`: Handler to delete all indexed data. This is called by the Kappa core when a complete reindex is necessary. The `map` function will receive messages from the start on afterwards.
-  * `version: int` The view version. If the version is increased, the Kappa core will clear and restart the indexing for this view after the next reopening of the core.
+  * `open: function (flow, cb)` *(optional)* Handler to call on open. `flow` is the current flow object (see below for docs). Call `cb` when done with opening.
+  * `close: function (cb)`: *(optional)* Handler to call on close. Has to call `cb`.
+  * `map: function (messages, next)` **(required)** Handler for each batch of messages. Call `next` when done indexing this batch of messages.
+  * `reset: function (cb)`: **(required)** Handler to delete all indexed data. This is called by the Kappa core when a complete reindex is necessary. The `map` function will receive messages from the start on afterwards.
+  * `version: int` The view version. If the version is increased, the Kappa core will clear and restart the indexing for this view after the next reopening of the core. Defaults to `1`.
 
-Both `source` and `view` can have an `api` property with an object of function. The functions are exposed on `kappa.view[name]` / `kappa.source[name]`. Their `this` object refers to the flow they are part of, and their first parameter is the `kappa`. Other parameters are passed through.
+Both `source` and `view` can have an `api` property with an object of functions. The functions are exposed on `kappa.view[name]` / `kappa.source[name]`. Their `this` object refers to the flow they are part of, and their first parameter is the `kappa`. Other parameters are passed through.
 
-The source has to track its state, so that subsequent calls to `pull()` do not return the same messages. Use the `onindexed` callback to update state. How to track its state is up to the source implementation.
-
-A simple state handler that perists state in a leveldb (or in memory) is included and used by the bundled source handler. It's available for use by custom sources on `Kappa.SimpleState`. If the bundled source handlers get a `db` option passed with levelup instance, the source state will be persisted.
+The source has to track its state, so that subsequent calls to `pull()` do not return the same messages. Use the `onindexed` callback to update state. How to track its state is up to the source implementation. kappa-core provides a `SimpleState` helper to simplify this, see its documentation below.
 
 There are several source handlers included in kappa-core (TODO: document sources). See the tests and sources directories.
 
@@ -64,6 +63,54 @@ Pause processing of all flows
 #### `kappa.resume()`
 
 Resume processing of all flows
+
+## Flow
+
+When calling `kappa.use()` a new *Flow* is created. A Flow is the combination of a source and a view - where the data flows from the source into the view. The `Flow` object is passed to sources and views in their `open` handler. It has this public API:
+
+* `flow.name`: (string) A name that uniquely identifies this flow within the Kappa core.
+* `flow.update()`: Signal to the flow that the source has new data available. Youwant to call this from a source when the source has new data. If the Kappa core is not paused, this will cause the `pull` handler to be called.
+* `flow.ready(cb)`: Calls `cb` (with no arguments) when this flow has finished processing all messages. `cb` is called immediately if the flow is already finished.
+* `flow.view`: Object with the view's API functions
+* `flow.source`: Object with the source's API functions
+
+## SimpleState
+
+`kappa-core` exports a `SimpleState` class that can be used by sources for a simple state handling. It persists state either in-memory, and supports a [LevelDB](https://github.com/Level/level) (or compatible) option for persistence.
+
+Example:
+
+```javascript
+const { KappaCore, SimpleState } = require('kappa-core')
+function createSource (opts) {
+  const state = new SimpleState({ db: opts.db })
+  return {
+    pull (next) {
+      // get your current state
+      state.get((err, state) => {
+        if (err) return next()
+        // fetch messages from your data source
+        fetchMessages(state, ({ messages, finished, nextState }) => {
+          // call next with an onindexed handler
+          next({
+            messages,
+            finished,
+            onindexed (cb) {
+              // store the new state
+              state.put(nextState, cb)
+            }
+          })
+        })
+      })
+    },
+    fetchVersion: state.fetchVersion,
+    storeVersion: state.storeVersion,
+    reset (cb) {
+      state.put('', cb)
+    }
+  }
+}
+```
 
 ## Sources
 
