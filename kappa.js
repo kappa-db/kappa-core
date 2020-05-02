@@ -61,6 +61,9 @@ module.exports = class Kappa extends EventEmitter {
     if (typeof names === 'function') return this.ready(null, names)
     if (typeof names === 'string') names = [names]
     if (!names) names = Object.keys(this.flows)
+    if (!names.length) return cb()
+
+    cb = once(cb)
 
     let pending = names.length
     for (const name of names) {
@@ -74,12 +77,13 @@ module.exports = class Kappa extends EventEmitter {
   }
 
   close (cb) {
+    cb = once(cb)
     let flows = Object.values(this.flows)
     let pending = flows.length
     if (!pending) done()
-    // TODO: Propagate errors?
     flows.forEach(flow => flow.close(done))
-    function done () {
+    function done (err) {
+      if (err) return cb(err)
       if (--pending === 0) cb()
     }
   }
@@ -181,7 +185,7 @@ class Flow extends EventEmitter {
     }
   }
 
-  ready (cb, waitForSource) {
+  ready (cb) {
     const self = this
     if (!this._opened) return this.open(() => this.ready(cb))
 
@@ -243,7 +247,6 @@ class Flow extends EventEmitter {
     this._source.pull(onbatch)
 
     function onbatch (result) {
-      // console.log(self.name, 'onbatch', result)
       if (self.status === Status.Paused) return close()
       if (!result) return close()
       if (result.messages) result.messages = result.messages.filter(m => m)
@@ -254,14 +257,17 @@ class Flow extends EventEmitter {
       // TODO: Handle timeout / error?
       self._transform.run(messages, messages => {
         if (!messages.length) return close(null, { messages, finished, onindexed })
-        self._view.map(messages, () => {
-          close(null, { messages, finished, onindexed })
+        self._view.map(messages, err => {
+          close(err, { messages, finished, onindexed })
         })
       })
     }
 
     function close (err, result) {
-      if (err) self.emit('error', err)
+      if (err) {
+        self.emit('error', err)
+        return finish(false)
+      }
       if (!result) return finish(true)
       const { messages, finished, onindexed } = result
       if (messages.length && self._view.indexed) {
@@ -318,3 +324,12 @@ function runThrough (state, fns, final) {
 }
 
 function noop () {}
+
+function once (fn) {
+  let called = false
+  return (...args) => {
+    if (called) return
+    called = true
+    fn(...args)
+  }
+}

@@ -21,6 +21,7 @@ Register a flow.
 * `name` (string) the name of the flow, has to be unique per kappa core
 * `source` object with properties:
   * `open: function (flow, next)`: (optional) Handler to call on open
+  * `close: function (next)`: (optional) Handler to call on close
   * `pull: function (next)`: Pull new messages from the view. Should call `next` with either nothing or an object that looks like this:
     ```javascript
     {
@@ -52,7 +53,7 @@ Reset a specific flow, to restart indexing. This is equal to reopening the kappa
 
 #### `kappa.ready(names, cb)`
 
-Call `cb` after all flows with a name in the `names` array have finished processing. If `names` is empty, all flows will be awaited.
+Call `cb` exactly once, after all flows with a name in the `names` array have finished processing. If `names` is empty, all flows will be awaited. If all the flows are already ready, `cb` is called immediately.
 
 #### `kappa.pause()`
 
