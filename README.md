@@ -20,9 +20,9 @@ Register a flow.
 
 * `name` (string) the name of the flow, has to be unique per kappa core
 * `source` object with properties:
-  * `open: function (flow, next)`: (optional) Handler to call on open
-  * `close: function (next)`: (optional) Handler to call on close
-  * `pull: function (next)`: Pull new messages from the view. Should call `next` with either nothing or an object that looks like this:
+  * `open: function (flow, cb)`: (optional) Handler to call on open.
+  * `close: function (cb)`: (optional) Handler to call on close.
+  * `pull: function (next)`: Handler to pull new messages from the view. Should call `next` with either nothing or an object that looks like this:
     ```javascript
     {
         messages: [], // array of messages
@@ -30,14 +30,15 @@ Register a flow.
         onindexed: function (cb) {} // will be called when the view finished indexing
     }
     ```
-  * `reset: function (cb)`: Delete internal state. This is called when a full reindex is necessary. This means that the next pull ought to start at the beginning.
-  * `storeVersion: function (version, cb)`: Store the flow version number somewhere.
-  * `fetchVersion: function (cb)`: Fetch the version stored with `storeVersion`
+  * `reset: function (cb)`: Handler to reset internal state. This is called when a full reindex is necessary. This means that the next pull ought to start at the beginning.
+  * `storeVersion: function (version, cb)`: Handler to store the flow version number.
+  * `fetchVersion: function (cb)`: Handler to fetch the version stored with `storeVersion`.
 
-* `view` object with properties 
-  * `map: function (messages, next)` (required) Called for each batch of messages. Call `next` when done indexing this batch of messages.
-  * `open: function (flow, next)` (optional) Callback to call on open. `flow` is the current flow, it notably has a `name` property that uniquely identifies this flow within the current Kappa core. Has to call `next` when done with opening.
-  * `reset: function (cb)`: Delete all indexed data. This is called by the Kappa core when a complete reindex is necessary. The `map` function will receive messages from the start on afterwards.
+* `view` object with properties:
+  * `map: function (messages, next)` (required) Handler for each batch of messages. Call `next` when done indexing this batch of messages.
+  * `open: function (flow, cb)` (optional) Handler to call on open. `flow` is the current flow, it notably has a `name` property that uniquely identifies this flow within the current Kappa core. Call `next` when done with opening.
+  * `close: function (cb)`: (optional) Handler to call on close.
+  * `reset: function (cb)`: Handler to delete all indexed data. This is called by the Kappa core when a complete reindex is necessary. The `map` function will receive messages from the start on afterwards.
   * `version: int` The view version. If the version is increased, the Kappa core will clear and restart the indexing for this view after the next reopening of the core.
 
 Both `source` and `view` can have an `api` property with an object of function. The functions are exposed on `kappa.view[name]` / `kappa.source[name]`. Their `this` object refers to the flow they are part of, and their first parameter is the `kappa`. Other parameters are passed through.
@@ -47,8 +48,6 @@ The source has to track its state, so that subsequent calls to `pull()` do not r
 A simple state handler that perists state in a leveldb (or in memory) is included and used by the bundled source handler. It's available for use by custom sources on `Kappa.SimpleState`. If the bundled source handlers get a `db` option passed with levelup instance, the source state will be persisted.
 
 There are several source handlers included in kappa-core (TODO: document sources). See the tests and sources directories.
-
-
 
 #### `kappa.reset(name, cb)`
 
