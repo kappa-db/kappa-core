@@ -74,7 +74,6 @@ class FakeDB {
       err.type = 'NotFoundError'
       err.notFound = true
       process.nextTick(cb, err)
-      cb(err)
     } else {
       process.nextTick(cb, null, this.state[key])
     }

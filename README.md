@@ -81,7 +81,7 @@ When calling `kappa.use()` a new *Flow* is created. A Flow is the combination of
 Example:
 
 ```javascript
-const { KappaCore, SimpleState } = require('kappa-core')
+const { Kappa, SimpleState } = require('kappa-core')
 function createSource (opts) {
   const state = new SimpleState({ db: opts.db })
   return {
