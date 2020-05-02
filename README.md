@@ -30,14 +30,14 @@ Register a flow.
         onindexed: function (cb) {} // will be called when the view finished indexing
     }
     ```
-  * `reset: function (cb)`: Reset internal state (next pull should start at the beginning). This handler is called by the kappa-core if the view's `version` property increases and thus wants to restart indexing.
-  * `storeVersion: function (version, cb)`: Store the flow version somewhere
-  * `fetchVersion: function (cb)`: Fetch the version stored with storeVersion
+  * `reset: function (cb)`: Delete internal state. This is called when a full reindex is necessary. This means that the next pull ought to start at the beginning.
+  * `storeVersion: function (version, cb)`: Store the flow version number somewhere.
+  * `fetchVersion: function (cb)`: Fetch the version stored with `storeVersion`
 
 * `view` object with properties 
   * `map: function (messages, next)` (required) Called for each batch of messages. Call `next` when done indexing this batch of messages.
   * `open: function (flow, next)` (optional) Callback to call on open. `flow` is the current flow, it notably has a `name` property that uniquely identifies this flow within the current Kappa core. Has to call `next` when done with opening.
-  * `clearIndex: function (cb)`: Delete all indexed data. This is called by the Kappa core when a complete reindex is necessary. The `map` function will receive messages from the start on afterwards.
+  * `reset: function (cb)`: Delete all indexed data. This is called by the Kappa core when a complete reindex is necessary. The `map` function will receive messages from the start on afterwards.
   * `version: int` The view version. If the version is increased, the Kappa core will clear and restart the indexing for this view after the next reopening of the core.
 
 Both `source` and `view` can have an `api` property with an object of function. The functions are exposed on `kappa.view[name]` / `kappa.source[name]`. Their `this` object refers to the flow they are part of, and their first parameter is the `kappa`. Other parameters are passed through.

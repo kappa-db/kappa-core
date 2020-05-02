@@ -113,7 +113,7 @@ function makeSimpleView (db, version) {
       })
     },
     version,
-    clearIndex (cb) {
+    reset (cb) {
       clears = clears + 1
       db.put('msgs', JSON.stringify([]), cb)
     },

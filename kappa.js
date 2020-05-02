@@ -100,6 +100,11 @@ class Flow extends EventEmitter {
 
     if (!view.version) view.version = 1
 
+    // TODO: Backward-compatibility only. Remove.
+    if (view.clearIndex && !view.reset) {
+      view.reset = view.clearIndex.bind(view)
+    }
+
     this._view = view
     this._source = source
 
@@ -227,7 +232,7 @@ class Flow extends EventEmitter {
     this.pause()
     let pending = 1
     process.nextTick(() => {
-      if (this._view.clearIndex) ++pending && this._view.clearIndex(done)
+      if (this._view.reset) ++pending && this._view.reset(done)
       if (this._source.reset) ++pending && this._source.reset(done)
       done()
     })

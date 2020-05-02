@@ -134,7 +134,7 @@ function createSimpleView () {
       res = res.concat(msgs)
       next()
     },
-    clearIndex (cb) {
+    reset (cb) {
       clears = clears + 1
       res = []
       cb()
