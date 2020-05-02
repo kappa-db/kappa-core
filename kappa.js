@@ -33,7 +33,9 @@ module.exports = class Kappa extends EventEmitter {
     flow.on('error', err => this.emit('error', err, flow))
 
     if (this.status !== Status.Paused) {
-      process.nextTick(() => flow.open())
+      process.nextTick(() => flow.open(err => {
+        if (err) this.emit('error', err)
+      }))
     }
 
     this.emit('flow', name)
@@ -125,7 +127,7 @@ class Flow extends EventEmitter {
     if (this.opts.transform) this._transform.push(this.opts.transform)
     if (this._view.transform) this._transform.push(this._view.transform.bind(this._view))
 
-    this._opened = false
+    this.opened = false
     this.open = thunky(this._open.bind(this))
   }
 
@@ -134,29 +136,38 @@ class Flow extends EventEmitter {
   }
 
   _open (cb = noop) {
-    if (this._opened) return cb()
+    if (this.opened) return cb()
     const self = this
-
+    let done = false
     let pending = 1
     if (this._view.open) ++pending && this._view.open(this, onopen)
     if (this._source.open) ++pending && this._source.open(this, onopen)
     onopen()
 
-    function onopen () {
+    function onopen (err) {
+      if (err) return ondone(err)
       if (--pending !== 0) return
-      if (self._source.fetchVersion) {
-        self._source.fetchVersion((err, version) => {
-          if (err) return ondone()
-          if (!version) return self._source.storeVersion(self.version, ondone)
-          if (version !== self.version) {
-            self.reset(() => self._source.storeVersion(self.version, ondone))
-          } else ondone()
-        })
-      } else ondone()
+      if (!self._source.fetchVersion) return ondone()
+
+      self._source.fetchVersion((err, version) => {
+        if (err) return ondone(err)
+        if (!version) {
+          self._source.storeVersion(self.version, ondone)
+        } else if (version !== self.version) {
+          self.reset(() => {
+            self._source.storeVersion(self.version, ondone)
+          })
+        } else {
+          ondone()
+        }
+      })
     }
 
-    function ondone () {
-      self._opened = true
+    function ondone (err) {
+      if (done) return
+      done = true
+      if (err) return cb(err)
+      self.opened = true
       self._run()
       cb()
     }
@@ -176,7 +187,7 @@ class Flow extends EventEmitter {
       function done () {
         if (--pending !== 0) return
         self._closing = false
-        self._opened = false
+        self.opened = false
         cb()
       }
     }
@@ -184,7 +195,7 @@ class Flow extends EventEmitter {
 
   ready (cb) {
     const self = this
-    if (!this._opened) return this.open(() => this.ready(cb))
+    if (!this.opened) return this.open(() => this.ready(cb))
 
     setImmediate(() => {
       if (this.source.ready) this.source.ready(onsourceready)
@@ -207,7 +218,7 @@ class Flow extends EventEmitter {
   resume () {
     if (this.status !== Status.Paused) return
     this.status = Status.Ready
-    if (!this._opened) return this.open()
+    if (!this.opened) return this.open()
     this._run()
   }
 
@@ -228,14 +239,14 @@ class Flow extends EventEmitter {
   }
 
   update () {
-    if (!this._opened) return
+    if (!this.opened) return
     this.incomingUpdate = true
     process.nextTick(this._run.bind(this))
   }
 
   _run () {
     const self = this
-    if (!this._opened) return
+    if (!this.opened) return
     if (this.status === Status.Running) return
     if (this.status === Status.Paused) return
 

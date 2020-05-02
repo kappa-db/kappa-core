@@ -89,6 +89,43 @@ tape('open close', t => {
   ])
 })
 
+tape('open error', t => {
+  const kappa = new Kappa()
+  kappa.use('foo', {
+    open (flow, cb) {
+      cb(new Error('open error'))
+    },
+    pull (next) { next() }
+  }, createSimpleView())
+  kappa.use('bar', {
+    open (flow, cb) {
+      cb()
+    },
+    pull (next) { next() }
+  }, createSimpleView())
+  kappa.on('error', err => {
+    t.equal(err.message, 'open error')
+    t.equal(kappa.flows.foo.opened, false)
+    t.equal(kappa.flows.bar.opened, true)
+    t.end()
+  })
+})
+
+tape('fetch version error', t => {
+  const kappa = new Kappa()
+  kappa.use('foo', {
+    fetchVersion (cb) {
+      cb(new Error('fetch version error'))
+    },
+    pull (next) { next() }
+  }, createSimpleView())
+  kappa.on('error', err => {
+    t.equal(err.message, 'fetch version error')
+    t.equal(kappa.flows.foo.opened, false)
+    t.end()
+  })
+})
+
 function createSimpleView () {
   let res = []
   let clears = 0
