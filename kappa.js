@@ -259,37 +259,37 @@ class Flow extends EventEmitter {
     this._source.pull(onbatch)
 
     function onbatch (result) {
-      if (self.status === Status.Paused) return close()
       if (!result) return close()
-      if (result.messages) result.messages = result.messages.filter(m => m)
-      if (!result.messages.length) return close(null, result)
-
-      const { messages = [], finished, onindexed } = result
+      const err = null
+      let { messages, finished, onindexed } = result
+      if (err) return close(err)
+      if (self.status === Status.Paused) return
+      if (!messages) return close()
+      messages = messages.filter(m => m)
+      if (!messages.length) return close()
 
       self._transform.run(messages, messages => {
-        if (!messages.length) return close(null, { messages, finished, onindexed })
+        if (!messages.length) return close()
         // TODO: Handle timeout?
         self._view.map(messages, err => {
-          close(err, { messages, finished, onindexed })
+          close(err, messages, finished, onindexed)
         })
       })
     }
 
-    function close (err, result) {
-      if (err) {
-        self.emit('error', err)
-        return finish(false)
-      }
-      if (!result) return finish(true)
-      const { messages, finished, onindexed } = result
-      if (messages.length && self._view.indexed) {
+    function close (err, messages, finished, onindexed) {
+      if (err) return finish(err)
+      if (messages && messages.length && self._view.indexed) {
         self._view.indexed(messages)
       }
-      if (onindexed) onindexed(() => finish(finished))
-      else finish(finished)
+      if (onindexed) onindexed(() => finish(null, finished))
+      else finish(null, finished)
     }
 
-    function finish (finished) {
+    function finish (err, finished = true) {
+      if (err) {
+        self.emit('error', err)
+      }
       self.status = Status.Ready
       if (self._closing) return self.emit('ready')
       if (self.incomingUpdate || !finished) {
