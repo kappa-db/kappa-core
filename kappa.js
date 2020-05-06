@@ -2,9 +2,10 @@ const thunky = require('thunky')
 const { EventEmitter } = require('events')
 
 const Status = {
-  Ready: 0,
-  Running: 1,
-  Paused: 2
+  Ready: 'ready',
+  Running: 'running',
+  Paused: 'paused',
+  Error: 'error'
 }
 
 module.exports = class Kappa extends EventEmitter {
@@ -260,9 +261,8 @@ class Flow extends EventEmitter {
 
     function onbatch (result) {
       if (!result) return close()
-      const err = null
-      let { messages, finished, onindexed } = result
-      if (err) return close(err)
+      let { error, messages, finished, onindexed } = result
+      if (error) return close(error)
       if (self.status === Status.Paused) return
       if (!messages) return close()
       messages = messages.filter(m => m)
@@ -288,10 +288,15 @@ class Flow extends EventEmitter {
 
     function finish (err, finished = true) {
       if (err) {
+        self.status = Status.Error
         self.emit('error', err)
+        if (self._closing) self.emit('ready')
+        return
       }
+
       self.status = Status.Ready
       if (self._closing) return self.emit('ready')
+
       if (self.incomingUpdate || !finished) {
         self.incomingUpdate = false
         process.nextTick(self._run.bind(self))

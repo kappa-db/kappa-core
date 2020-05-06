@@ -27,6 +27,82 @@ tape('simple source', t => {
   ])
 })
 
+tape('finished handling', t => {
+  const kappa = new Kappa()
+  t.plan(5)
+
+  let msgs = ['a', 'b', 'c']
+  let i = 0
+  kappa.use('foo', {
+    pull (next) {
+      let finished
+      if (i !== msgs.length - 1) finished = false
+      next({
+        messages: [msgs[i]],
+        finished,
+        onindexed: (cb) => {
+          t.pass('onindexed ' + i)
+          i = i + 1
+          cb()
+        }
+      })
+    }
+  }, createSimpleView())
+
+  runAll([
+    cb => kappa.view.foo.collect((err, res) => {
+      t.error(err)
+      t.deepEqual(res, ['a', 'b', 'c'])
+      cb()
+    }),
+    cb => t.end()
+  ])
+})
+
+tape('error on pull', t => {
+  const kappa = new Kappa()
+  let msgs = ['a']
+  let i = 0
+  kappa.use('foo', {
+    pull (next) {
+      if (i === 1) return next({ error: new Error('pull error') })
+      if (i > 1) t.fail('pull after error')
+      next({
+        messages: msgs,
+        finished: false,
+        onindexed: (cb) => {
+          t.pass('onindexed ' + i)
+          i++
+          cb()
+        }
+      })
+    }
+  }, createSimpleView())
+  kappa.once('error', err => {
+    t.equal(err.message, 'pull error')
+    t.equal(kappa.flows.foo.status, 'error')
+    t.end()
+  })
+})
+
+tape('error on map', t => {
+  const kappa = new Kappa()
+  kappa.use('foo', createSimpleSource(), {
+    map (messages, next) {
+      next(new Error('map error'))
+    }
+  })
+  kappa.source.foo.push('a')
+  kappa.once('error', err => {
+    t.equal(err.message, 'map error')
+    t.equal(kappa.flows.foo.status, 'error')
+    t.end()
+  })
+  kappa.ready(() => {
+    t.fail('no ready on error')
+  })
+})
+
 tape('reset', t => {
   const kappa = new Kappa()
   const foo = kappa.use('foo', createSimpleSource(), createSimpleView())
