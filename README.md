@@ -70,11 +70,7 @@ var kappa = require('kappa-core')
 
 Create a new kappa-core database.
 
-- `storage` is an instance of
-  [random-access-storage](https://github.com/random-access-storage). If a string
-  is given,
-  [random-access-file](https://github.com/random-access-storage/random-access-storage)
-  is used with the string as the filename.
+- `storage` is a [random-access-storage](https://github.com/random-access-storage) function, or a string. If a string is given, [random-access-file](https://github.com/random-access-storage/random-access-storage) is used with that string as the filename.
 - Valid `opts` include:
   - `valueEncoding`: a string describing how the data will be encoded.
   - `multifeed`: A preconfigured instance of [multifeed](https://github.com/kappa-db/multifeed)
