@@ -108,8 +108,8 @@ class Flow extends EventEmitter {
     this._view = view
     this._source = source
 
-    this.context = opts.context
-    this.status = opts.status || Status.Ready
+    this._context = opts.context
+    this._status = opts.status || Status.Ready
     this._indexingState = {}
 
     // Assign view and source apis
@@ -118,12 +118,12 @@ class Flow extends EventEmitter {
     this.view.ready = cb => this.ready(cb)
     if (view.api) {
       for (let [key, value] of Object.entries(view.api)) {
-        this.view[key] = bindFn(value, this, this.context)
+        this.view[key] = bindFn(value, this, this._context)
       }
     }
     if (source.api) {
       for (let [key, value] of Object.entries(source.api)) {
-        this.source[key] = bindFn(value, this, this.context)
+        this.source[key] = bindFn(value, this, this._context)
       }
     }
 
@@ -183,7 +183,7 @@ class Flow extends EventEmitter {
     const self = this
     this.pause()
     this._closing = true
-    if (this.status === Status.Running) return this.once('ready', close)
+    if (this._status === Status.Running) return this.once('ready', close)
     else close()
     function close () {
       let pending = 1
@@ -211,19 +211,19 @@ class Flow extends EventEmitter {
 
     function onsourceready () {
       process.nextTick(() => {
-        if (self.status === Status.Ready) process.nextTick(cb)
+        if (self._status === Status.Ready) process.nextTick(cb)
         else self.once('ready', cb)
       })
     }
   }
 
   pause () {
-    this.status = Status.Paused
+    this._status = Status.Paused
   }
 
   resume () {
-    if (this.status !== Status.Paused) return
-    this.status = Status.Ready
+    if (this._status !== Status.Paused) return
+    this._status = Status.Ready
     if (!this.opened) return this.open()
     this._run()
   }
@@ -251,23 +251,23 @@ class Flow extends EventEmitter {
   }
 
   getState () {
-    return { status: this.status, ...this._indexingState }
+    return { status: this._status, ...this._indexingState }
   }
 
   _run () {
     const self = this
     if (!this.opened) return
-    if (this.status === Status.Running) return
-    if (this.status === Status.Paused) return
+    if (this._status === Status.Running) return
+    if (this._status === Status.Paused) return
 
-    this.status = Status.Running
+    this._status = Status.Running
 
     this.emit('state-update', self.getState())
 
     this._source.pull(onbatch)
 
     function onbatch (result) {
-      if (self.status === Status.Paused) return
+      if (self._status === Status.Paused) return
 
       if (!result) return close()
       let { error, messages, finished, onindexed } = result
@@ -292,8 +292,8 @@ class Flow extends EventEmitter {
         self._view.indexed(messages)
       }
       if (onindexed) {
-        onindexed((err, status) => {
-          if (!err && status) self._indexingState = Object.assign(self._indexingState, { error: null }, status)
+        onindexed((err, _status) => {
+          if (!err && _status) self._indexingState = Object.assign(self._indexingState, { error: null }, _status)
           finish(err, finished)
         })
       } else finish(null, finished)
@@ -301,11 +301,11 @@ class Flow extends EventEmitter {
 
     function finish (err, finished = true) {
       if (err) {
-        self.status = Status.Error
+        self._status = Status.Error
         self._indexingState.error = err
         self.emit('error', err)
       } else {
-        self.status = Status.Ready
+        self._status = Status.Ready
       }
 
       if (self._closing) return self.emit('ready')

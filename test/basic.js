@@ -80,7 +80,7 @@ tape('error on pull', t => {
   }, createSimpleView())
   kappa.once('error', err => {
     t.equal(err.message, 'pull error')
-    t.equal(kappa.flows.foo.status, 'error')
+    t.equal(kappa.flows.foo.getState().status, 'error')
     t.end()
   })
 })
@@ -95,7 +95,7 @@ tape('error on map', t => {
   kappa.source.foo.push('a')
   kappa.once('error', err => {
     t.equal(err.message, 'map error')
-    t.equal(kappa.flows.foo.status, 'error')
+    t.equal(kappa.flows.foo.getState().status, 'error')
     t.end()
   })
   kappa.ready(() => {
@@ -126,6 +126,7 @@ tape('state update', t => {
         indexedBlocks: 4,
         prevIndexedBlocks: 2
       }, 'state matches')
+      t.deepEqual(state, foo.getState())
       cb()
     }),
     cb => {
