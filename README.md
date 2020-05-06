@@ -25,9 +25,19 @@ Register a flow.
   * `pull: function (next)`: **(required)** Handler to pull new messages from the view. Should call `next` with either nothing or an object that looks like this:
     ```javascript
     {
+        error: Error,
         messages: [], // array of messages
         finished: true, // if set to false, signal that more messages are pending
-        onindexed: function (cb) {} // will be called when the view finished indexing
+        onindexed: function (cb) {
+          // will be called when the view finished indexing
+          // call cb after the source state is updated
+          // may return a state object with, by convention, the following keys:
+          cb(null, {
+            totalBlocks: Number,
+            indexedBlocks: Number,
+            prevIndexedBlocks: Number 
+          })
+        }
     }
     ```
   * `reset: function (cb)`: **(required)** Handler to reset internal state. This is called when a full reindex is necessary. This means that the next pull ought to start at the beginning.
@@ -71,6 +81,18 @@ When calling `kappa.use()` a new *Flow* is created. A Flow is the combination of
 * `flow.name`: (string) A name that uniquely identifies this flow within the Kappa core.
 * `flow.update()`: Signal to the flow that the source has new data available. Youwant to call this from a source when the source has new data. If the Kappa core is not paused, this will cause the `pull` handler to be called.
 * `flow.ready(cb)`: Calls `cb` (with no arguments) when this flow has finished processing all messages. `cb` is called immediately if the flow is already finished.
+* `flow.getState()`: Get the current indexing state. Returns an object:
+    ```javascript
+      {
+        status: 'idle' | 'running' | 'paused' | 'error',
+        error: null | Error,
+        // ... other keys as returned by the source
+        // by convention this should include the following keys:
+        totalBlocks: Number,
+        indexedBlocks: Number,
+        prevIndexedBlocks: Number
+      }
+    ```
 * `flow.view`: Object with the view's API functions
 * `flow.source`: Object with the source's API functions
 

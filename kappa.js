@@ -110,6 +110,7 @@ class Flow extends EventEmitter {
 
     this.context = opts.context
     this.status = opts.status || Status.Ready
+    this._indexingState = {}
 
     // Assign view and source apis
     this.view = {}
@@ -249,6 +250,10 @@ class Flow extends EventEmitter {
     process.nextTick(this._run.bind(this))
   }
 
+  getState () {
+    return { status: this.status, ...this._indexingState }
+  }
+
   _run () {
     const self = this
     if (!this.opened) return
@@ -257,14 +262,18 @@ class Flow extends EventEmitter {
 
     this.status = Status.Running
 
+    this.emit('state-update', self.getState())
+
     this._source.pull(onbatch)
 
     function onbatch (result) {
+      if (self.status === Status.Paused) return
+
       if (!result) return close()
       let { error, messages, finished, onindexed } = result
       if (error) return close(error)
-      if (self.status === Status.Paused) return
       if (!messages) return close()
+
       messages = messages.filter(m => m)
       if (!messages.length) return close()
 
@@ -282,26 +291,31 @@ class Flow extends EventEmitter {
       if (messages && messages.length && self._view.indexed) {
         self._view.indexed(messages)
       }
-      if (onindexed) onindexed(() => finish(null, finished))
-      else finish(null, finished)
+      if (onindexed) {
+        onindexed((err, status) => {
+          if (!err && status) self._indexingState = Object.assign(self._indexingState, { error: null }, status)
+          finish(err, finished)
+        })
+      } else finish(null, finished)
     }
 
     function finish (err, finished = true) {
       if (err) {
         self.status = Status.Error
+        self._indexingState.error = err
         self.emit('error', err)
-        if (self._closing) self.emit('ready')
-        return
+      } else {
+        self.status = Status.Ready
       }
 
-      self.status = Status.Ready
       if (self._closing) return self.emit('ready')
 
-      if (self.incomingUpdate || !finished) {
+      if (!err && (self.incomingUpdate || !finished)) {
         self.incomingUpdate = false
         process.nextTick(self._run.bind(self))
       } else {
-        self.emit('ready')
+        self.emit('state-update', self.getState())
+        if (!err) self.emit('ready')
       }
     }
   }
