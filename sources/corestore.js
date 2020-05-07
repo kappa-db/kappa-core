@@ -5,6 +5,7 @@ const SimpleState = require('./util/state')
 module.exports = function corestoreSource (opts) {
   const state = opts.state || new SimpleState(opts)
   const store = opts.store
+  const feeds = new Set()
   const sources = []
   return {
     open (flow, cb) {
@@ -29,7 +30,9 @@ module.exports = function corestoreSource (opts) {
     }
   }
 
-  function _onfeed (flow, feed, cb) {
+  function _onfeed (flow, feed) {
+    if (feeds.has(feed)) return
+    feeds.add(feed)
     const source = hypercoreSource({
       feed,
       state
@@ -37,7 +40,6 @@ module.exports = function corestoreSource (opts) {
     sources.push(source)
     source.open(flow, () => {
       flow.update()
-      if (cb) cb()
     })
   }
 }
