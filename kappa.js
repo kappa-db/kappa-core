@@ -113,19 +113,9 @@ class Flow extends EventEmitter {
     this._indexingState = {}
 
     // Assign view and source apis
-    this.view = {}
-    this.source = {}
+    this.view = bindApi(view.api, this._context)
     this.view.ready = cb => this.ready(cb)
-    if (view.api) {
-      for (let [key, value] of Object.entries(view.api)) {
-        this.view[key] = bindFn(value, this, this._context)
-      }
-    }
-    if (source.api) {
-      for (let [key, value] of Object.entries(source.api)) {
-        this.source[key] = bindFn(value, this, this._context)
-      }
-    }
+    this.source = bindApi(source.api, this._context)
 
     // Create the list of funtions through which messages run between pull and map.
     this._transform = new Pipeline()
@@ -230,6 +220,7 @@ class Flow extends EventEmitter {
 
   reset (cb = noop) {
     const self = this
+    const paused = this._status === Status.Paused
     this.pause()
     let pending = 1
     process.nextTick(() => {
@@ -239,7 +230,7 @@ class Flow extends EventEmitter {
     })
     function done () {
       if (--pending !== 0) return
-      self.resume()
+      if (!paused) self.resume()
       cb()
     }
   }
@@ -323,9 +314,13 @@ class Flow extends EventEmitter {
 
 // Utils
 
-function bindFn (value, ...binds) {
-  if (typeof value === 'function') value = value.bind(...binds)
-  return value
+function bindApi (api, ...binds) {
+  if (!api) return {}
+  for (let [key, value] of Object.entries(api)) {
+    if (typeof value !== 'function') continue
+    api[key] = value.bind(api, ...binds)
+  }
+  return api
 }
 
 class Pipeline {
