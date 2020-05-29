@@ -32,6 +32,7 @@ module.exports = class Kappa extends EventEmitter {
     this.view[name] = flow.view
     this.source[name] = flow.source
     flow.on('error', err => this.emit('error', err, flow))
+    flow.on('state-update', state => this.emit('state-update', name, state))
 
     if (this.status !== Status.Paused) {
       process.nextTick(() => flow.open(err => {
