@@ -123,7 +123,6 @@ tape('state update', t => {
       t.deepEqual(res, [1, 2, 3, 4], 'result matches')
       t.deepEqual(state, {
         status: 'ready',
-        error: null,
         totalBlocks: 4,
         indexedBlocks: 4,
         prevIndexedBlocks: 2

@@ -2,9 +2,11 @@ const thunky = require('thunky')
 const { EventEmitter } = require('events')
 
 const Status = {
+  Closed: 'closed',
   Ready: 'ready',
   Running: 'running',
   Paused: 'paused',
+  Closing: 'closing',
   Error: 'error'
 }
 
@@ -120,7 +122,6 @@ class Flow extends EventEmitter {
     this._source = source
 
     this._context = opts.context
-    this._status = opts.status || Status.Ready
     this._indexingState = {}
 
     // Assign view and source apis
@@ -136,6 +137,7 @@ class Flow extends EventEmitter {
 
     this.opened = false
     this.open = thunky(this._open.bind(this))
+    this._state = new State()
   }
 
   get version () {
@@ -174,6 +176,7 @@ class Flow extends EventEmitter {
       if (done) return
       done = true
       if (err) return cb(err)
+      self._setState(Status.Ready)
       self.opened = true
       self._run()
       cb()
@@ -183,9 +186,12 @@ class Flow extends EventEmitter {
   close (cb) {
     const self = this
     this.pause()
-    this._closing = true
-    if (this._status === Status.Running) return this.once('ready', close)
+    let state = this._state.state
+    this._setState(Status.Closing)
+
+    if (state === Status.Running) return this.once('ready', close)
     else close()
+
     function close () {
       let pending = 1
       if (self._source.close) ++pending && self._source.close(done)
@@ -193,7 +199,7 @@ class Flow extends EventEmitter {
       done()
       function done () {
         if (--pending !== 0) return
-        self._closing = false
+        self._setState(Status.Closed)
         self.opened = false
         cb()
       }
@@ -212,26 +218,26 @@ class Flow extends EventEmitter {
 
     function onsourceready () {
       process.nextTick(() => {
-        if (self._status === Status.Ready) process.nextTick(cb)
+        if (self._state.state === Status.Ready) process.nextTick(cb)
         else self.once('ready', cb)
       })
     }
   }
 
   pause () {
-    this._status = Status.Paused
+    this._setState(Status.Paused)
   }
 
   resume () {
-    if (this._status !== Status.Paused) return
-    this._status = Status.Ready
+    if (this._state.state !== Status.Paused) return
     if (!this.opened) return this.open()
+    this._setState(Status.Ready)
     this._run()
   }
 
   reset (cb = noop) {
     const self = this
-    const paused = this._status === Status.Paused
+    const paused = this._state.state === Status.Paused
     this.pause()
     let pending = 1
     process.nextTick(() => {
@@ -253,29 +259,33 @@ class Flow extends EventEmitter {
   }
 
   getState () {
-    return { status: this._status, ...this._indexingState }
+    return this._state.get()
+  }
+
+  _setState (state, context) {
+    this._state.set(state, context)
+    this.emit('state-update', this._state.get())
+    if (state === Status.Error) {
+      this.emit('error', context && context.error)
+    }
   }
 
   _run () {
+    if (this._state.state !== Status.Ready) return
     const self = this
-    if (!this.opened) return
-    if (this._status === Status.Running) return
-    if (this._status === Status.Paused) return
 
-    this._status = Status.Running
-
-    this.emit('state-update', self.getState())
-
+    this._setState(Status.Running)
     this._source.pull(onbatch)
 
     function onbatch (result) {
-      if (self._status === Status.Paused) return
-
+      // If set to paused while pulling, drop the result and don't update state.
+      if (self._state.state === Status.Paused) return
       if (!result) return close()
+
       let { error, messages, finished, onindexed } = result
+
       if (error) return close(error)
       if (!messages) return close()
-
       messages = messages.filter(m => m)
       if (!messages.length) return close()
 
@@ -294,32 +304,43 @@ class Flow extends EventEmitter {
         self._view.indexed(messages)
       }
       if (onindexed) {
-        onindexed((err, _status) => {
-          if (!err && _status) self._indexingState = Object.assign(self._indexingState, { error: null }, _status)
-          finish(err, finished)
-        })
-      } else finish(null, finished)
+        onindexed((err, context) => finish(err, finished, context))
+      } else {
+        finish(null, finished)
+      }
     }
 
-    function finish (err, finished = true) {
+    function finish (err, finished = true, context) {
       if (err) {
-        self._status = Status.Error
-        self._indexingState.error = err
-        self.emit('error', err)
-      } else {
-        self._status = Status.Ready
+        self._setState(Status.Error, { error: err })
+      } else if (self._state.state !== Status.Closing) {
+        self._setState(Status.Ready, context)
       }
 
-      if (self._closing) return self.emit('ready')
-
-      if (!err && (self.incomingUpdate || !finished)) {
+      if (self._state.state === Status.Ready && (self.incomingUpdate || !finished)) {
         self.incomingUpdate = false
         process.nextTick(self._run.bind(self))
       } else {
-        self.emit('state-update', self.getState())
-        if (!err) self.emit('ready')
+        self.emit('ready')
       }
+
     }
+  }
+}
+
+class State {
+  constructor () {
+    this.state = Status.Closed
+    this.context = null
+  }
+
+  set (state, context) {
+    this.state = state
+    if (context) this.context = { ...this.context, ...context }
+  }
+
+  get () {
+    return Object.assign({ status: this.state }, this.context || {})
   }
 }
 
