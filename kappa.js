@@ -16,6 +16,7 @@ module.exports = class Kappa extends EventEmitter {
   constructor (opts = {}) {
     super()
     this.flows = {}
+    this.status = Status.Ready
     // APIs
     this.view = {}
     this.source = {}
@@ -46,45 +47,54 @@ module.exports = class Kappa extends EventEmitter {
 
   pause () {
     this.status = Status.Paused
-    Object.values(this.flows).forEach(flow => flow.pause())
+    this._forEach(flow => flow.pause())
   }
 
   resume () {
     if (this.status !== Status.Paused) return
-    Object.values(this.flows).forEach(flow => flow.resume())
+    this._forEach(flow => flow.resume())
     this.status = Status.Ready
   }
 
-  reset (name, cb) {
-    const flow = this.flows[name]
-    if (!flow) return cb(new Error('Unknown flow: ' + name))
-    flow.reset(cb)
+  reset (names, cb) {
+    this._forEachAsync((flow, next) => {
+      flow.reset(next)
+    }, names, cb)
   }
 
   ready (names, cb) {
-    if (typeof names === 'function') return this.ready(null, names)
-    if (typeof names === 'string') names = [names]
-    if (!names) names = Object.keys(this.flows)
-    if (!names.length) return cb()
-    cb = once(cb)
-
-    let pending = names.length
-    for (const name of names) {
-      const flow = this.flows[name]
-      if (!flow) return cb(new Error('Unknown flow: ' + name))
-      flow.ready(done)
-    }
-    function done () {
-      if (--pending === 0) cb()
-    }
+    this._forEachAsync((flow, next) => {
+      flow.ready(next)
+    }, names, cb)
   }
 
   close (cb) {
+    this._forEachAsync((flow, next) => {
+      flow.close(next)
+    }, cb)
+  }
+
+  _forEach (fn, names) {
+    if (typeof names === 'string') names = [names]
+    if (!names) names = Object.keys(this.flows)
+    for (const name of names) {
+      if (!this.flows[name]) continue
+      fn(this.flows[name])
+    }
+  }
+
+  _forEachAsync (fn, names, cb) {
+    if (typeof names === 'function') {
+      cb = names
+      names = null
+    }
     cb = once(cb)
-    let flows = Object.values(this.flows)
-    let pending = flows.length
-    if (!pending) return done()
-    flows.forEach(flow => flow.close(done))
+    let pending = 1
+    this._forEach(flow => {
+      ++pending
+      fn(flow, done)
+    }, names)
+    done()
     function done (err) {
       if (err) return cb(err)
       if (--pending === 0) cb()
