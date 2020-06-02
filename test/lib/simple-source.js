@@ -1,52 +1,56 @@
-module.exports = function createSimpleSource (opts = {}) {
-  const buf = []
-  const maxBatch = opts.maxBatch || 10
-  let flow = null
-  let state = 0
-  let error = null
+module.exports = (opts) => new SimpleSource(opts)
 
-  const source = {
-    open (_flow, next) {
-      flow = _flow
-      next()
-    },
-    pull (next) {
-      if (error) return next({ error })
-      const max = buf.length
-      const end = Math.min(state + maxBatch, max)
-      const messages = buf.slice(state, end)
-      const lastState = state
-      next({
-        messages,
-        finished: end === max,
-        onindexed (cb) {
-          state = end
-          cb(null, {
-            totalBlocks: buf.length,
-            indexedBlocks: end,
-            prevIndexedBlocks: lastState
-          })
-        }
-      })
-    },
-    reset (next) {
-      state = 0
-      next()
-    },
-    get api () {
-      return {
-        push (kappa, value) {
-          if (!Array.isArray(value)) value = [value]
-          buf.push(...value)
-          if (flow) flow.update()
-        },
-        error (kappa, err) {
-          error = err
-          if (flow) flow.update()
-        }
+class SimpleSource {
+  constructor (opts = {}) {
+    this.buf = opts.data || []
+    this.cursor = 0
+    this.flow = null
+    this.error = null
+    this.maxBatch = opts.maxBatch || 10
+  }
+
+  open (flow, next) {
+    this.flow = flow
+    next()
+  }
+
+  pull (next) {
+    if (this.error) return next({ error: this.error })
+    const len = this.buf.length
+    const end = Math.min(this.cursor + this.maxBatch, len)
+    const messages = this.buf.slice(this.cursor, end)
+    const lastState = this.cursor
+    next({
+      messages,
+      finished: end === len,
+      onindexed: cb => {
+        this.cursor = end
+        cb(null, {
+          totalBlocks: this.buf.length,
+          indexedBlocks: end,
+          prevIndexedBlocks: lastState
+        })
+      }
+    })
+  }
+
+  reset (cb) {
+    this.cursor = 0
+    cb()
+  }
+
+  get api () {
+    const self = this
+    return {
+      push (kappa, value) {
+        if (!Array.isArray(value)) value = [value]
+        self.buf.push(...value)
+        if (self.flow) self.flow.update()
+      },
+      error (kappa, err) {
+        self.error = err
+        if (self.flow) self.flow.update()
       }
     }
   }
-
-  return source
 }
