@@ -64,6 +64,12 @@ module.exports = class Kappa extends EventEmitter {
     }, names, cb)
   }
 
+  getState () {
+    const state = {}
+    this._forEach(flow => (state[flow.name] = flow.getState()))
+    return state
+  }
+
   ready (names, cb) {
     this._forEachAsync((flow, next) => {
       flow.ready(next)
