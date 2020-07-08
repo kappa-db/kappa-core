@@ -129,7 +129,7 @@ the form
 }
 ```
 
-**NOTE**: The kappa-core instance `core` is always passed as the fist parameter
+**NOTE**: The kappa-core instance `core` is always passed as the first parameter
 in all of the `api` functions you define.
 
 `version` is an integer that represents what version you want to consider the
@@ -151,7 +151,7 @@ been indexed and written to storage. Receives an array of entries.
 
 ### core.ready(viewNames, cb)
 
-Wait until all views named by `viewNames` are caught up. e.g.
+Wait until all views named by `viewNames` are caught up. E.g.
 
 ```
 // one
