@@ -1,5 +1,4 @@
 var kappa = require('.')
-var hypercore = require('hypercore')
 
 var core = kappa('./log', { valueEncoding: 'json' })
 
