@@ -33,7 +33,7 @@ log" as its single source of truth.
 
 An append-only log is a data structure that can only be added to. Each entry in
 a log is addressable by its "sequence number" (starting at 0, then 1, 2, 3,
-...). In the case of kappa-core, which uses [hypercore][hypercore] underneath,
+...). In the case of kappa-core, which uses [hypercore](https://github.com/hypercore-protocol/hypercore) underneath,
 each log is also identified by a cryptographic *public key*, which allows each
 log entry to be digitally signed with that log's *private key*, certifying that
 each entry in the log was indeed authored by the same person or device. A
