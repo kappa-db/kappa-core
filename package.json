@@ -16,7 +16,7 @@
   "keywords": [],
   "dependencies": {
     "inherits": "^2.0.4",
-    "multifeed": "^5.0.0",
+    "multifeed": "^6.0.0",
     "multifeed-index": "^3.3.2"
   },
   "devDependencies": {
